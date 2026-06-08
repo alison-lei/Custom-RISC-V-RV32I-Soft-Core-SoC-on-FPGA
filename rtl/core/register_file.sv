@@ -1,5 +1,18 @@
 `timescale 1ns / 1ns
 
+// need to figure out whether i need a writeback, and separate reading values from register, writing values to registers, loading and storing from and to RAM
+
+/*
+No — and this is an important principle. In hardware you don't have functions the way software does.
+A module is the hardware equivalent of a function, but it physically exists as a circuit.
+If you copy the register file logic into execute, you're describing a
+second register file in hardware — two separate arrays of 32 registers.
+That's not what you want.
+The register file is instantiated once at the top level and its read/write ports are wired to wherever they're needed.
+It's shared hardware, not reusable code.
+
+*/
+
 module register_file (
     input logic clk, reset, rd_enable, input logic [4:0] rs1_num, rs2_num, rd_num, input logic [31:0] rd_data,
     output logic [31:0] rs1_data, rs2_data
