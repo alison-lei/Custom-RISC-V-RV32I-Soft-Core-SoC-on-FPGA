@@ -12,7 +12,7 @@ module execute (
     output logic [4:0] final_reg_num,
     output logic mem_stage_enable, branch_b, jump_b, ld_enable, st_enable,
     output logic [2:0] mem_size
-    // mem_stage_enable = 1 --> load or store from memory
+    // mem_stage_enable = 1 --> load or store, go to memory stage
     // mem_stage_enable = 0 --> pass by memory stage straight to writeback
 );
     typedef enum logic [3:0] {

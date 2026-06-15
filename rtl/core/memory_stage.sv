@@ -6,7 +6,7 @@ module memory_stage (
     input logic [4:0] final_reg_num,
     input logic [31:0] st_data, mem_addr,
     output logic [31:0] load_reg_data,
-    output logic [4:0] ld_reg_num
+    output logic [4:0] load_reg_num
     // assign default statements to all the case statements?
 );
     typedef enum logic [2:0] {
@@ -67,6 +67,6 @@ module memory_stage (
     end
 
     assign load_reg_data = ld_data_temp;
-    assign ld_reg_num = (ld_enable) ? final_reg_num : 5'b0;
+    assign load_reg_num = (ld_enable) ? final_reg_num : 5'b0;
 
 endmodule
