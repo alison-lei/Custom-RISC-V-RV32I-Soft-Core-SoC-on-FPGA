@@ -13,7 +13,7 @@ module decode (
     output logic [3:0] ALU_ctrl,
     output logic [4:0] rd_num, rs1_num, rs2_num,
     output logic [31:0] immediate,
-    output logic jump_enable, branch_enable, mem_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
+    output logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
     output logic [2:0] size, branch_type
 );
     typedef enum logic [3:0] {
@@ -42,7 +42,6 @@ module decode (
     st_ld_size sz;
 
     logic [31:0] imm;
-
     logic [6:0]  funct7;
     logic [4:0]  rs2;
     logic [4:0]  rs1;
@@ -67,7 +66,6 @@ module decode (
         jump_enable = 1'b0;
         branch_enable = 1'b0;
         rd_enable = 1'b0;
-        mem_enable = 1'b0;
         store_enable = 1'b0;
         load_enable = 1'b0;
         sz = 3'b0;
@@ -147,7 +145,6 @@ module decode (
                 endcase
                 
                 store_enable = 1'b1;
-                mem_enable = 1'b1;
                 ALUSrc = 1'b1;
                 rs1_num = rs1;
                 rs2_num = rs2;
@@ -167,7 +164,6 @@ module decode (
                 endcase
 
                 load_enable = 1'b1;
-                mem_enable = 1'b1;
                 rd_enable = 1'b1;
                 ALUSrc = 1'b1;
                 rs1_num = rs1;
