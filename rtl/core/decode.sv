@@ -8,11 +8,11 @@ what's left:
 
 
 module decode (
-    input logic reset,
     input logic [31:0] instr,
     output logic [3:0] ALU_ctrl,
     output logic [4:0] rd_num, rs1_num, rs2_num,
     output logic [31:0] immediate,
+    // can be jump and branch instructions (enable), but branch condition might not be satisfied (not _b)
     output logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
     output logic [2:0] size, branch_type
 );
@@ -58,7 +58,6 @@ module decode (
     assign rd = instr[11:7];
 
     always_comb begin
-        op = 4'b0;
         imm = 32'b0;
         rd_num = 5'b0;
         rs1_num = 5'b0;
@@ -68,7 +67,6 @@ module decode (
         rd_enable = 1'b0;
         store_enable = 1'b0;
         load_enable = 1'b0;
-        sz = 3'b0;
         branch_type = 3'b0;
         ALUSrc = 1'b0;
         use_pc = 1'b0;
