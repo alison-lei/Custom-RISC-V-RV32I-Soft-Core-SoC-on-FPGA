@@ -3,7 +3,7 @@
 // byte-addresable memory
 
 module fetch (
-    input logic clk, input logic [31:0] addr,
+    input logic [31:0] addr,
     output logic [31:0] instr
 );
     // elements in memory are of word granularity
@@ -11,9 +11,6 @@ module fetch (
 
     initial $readmemh("compiled_program.hex", memory);
 
-    always_ff @(posedge clk) begin
-        instr <= memory[addr >> 2];
-    end
-
+    assign instr = memory[addr >> 2];
 
 endmodule
