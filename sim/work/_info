@@ -10,7 +10,7 @@ cModel Technology
 dC:/Users/aliso/Custom-RISC-V-SoC-Design-on-FPGA/sim
 vdecode
 Z0 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
-Z1 !s110 1782092786
+Z1 !s110 1782103237
 !i10b 1
 !s100 RDUC?SU6Ua3Vi`>lm@DJm0
 I3:b6VOVG97lBKh>POWVH?0
@@ -18,19 +18,19 @@ Z2 VDg1SIo80bB@j0V0VzS_@n1
 !s105 decode_sv_unit
 S1
 Z3 dC:/Users/aliso/Custom-RISC-V-SoC-Design-on-FPGA
-Z4 w1781798679
+w1782095107
 8rtl/core/decode.sv
 Frtl/core/decode.sv
 L0 10
-Z5 OV;L;10.5b;63
+Z4 OV;L;10.5b;63
 r1
 !s85 0
 31
-Z6 !s108 1782092786.000000
-Z7 !s107 rtl/top_processor.sv|rtl/core/writeback.sv|rtl/core/memory_stage.sv|rtl/core/execute.sv|rtl/core/register_file.sv|rtl/core/decode.sv|rtl/core/fetch.sv|rtl/core/update_pc.sv|
-Z8 !s90 -reportprogress|300|-f|filelist_core.f|
+Z5 !s108 1782103237.000000
+Z6 !s107 rtl/top_processor.sv|rtl/core/writeback.sv|rtl/core/memory_stage.sv|rtl/core/execute.sv|rtl/core/register_file.sv|rtl/core/decode.sv|rtl/core/fetch.sv|rtl/core/update_pc.sv|
+Z7 !s90 -reportprogress|300|-f|filelist_core.f|
 !i113 1
-Z9 tCvgOpt 0
+Z8 tCvgOpt 0
 vexecute
 R0
 R1
@@ -41,19 +41,19 @@ R2
 !s105 execute_sv_unit
 S1
 R3
-R4
+Z9 w1781798679
 8rtl/core/execute.sv
 Frtl/core/execute.sv
 L0 3
-R5
+R4
 r1
 !s85 0
 31
+R5
 R6
 R7
-R8
 !i113 1
-R9
+R8
 vfetch
 R0
 R1
@@ -68,15 +68,15 @@ w1782091773
 8rtl/core/fetch.sv
 Frtl/core/fetch.sv
 L0 5
-R5
+R4
 r1
 !s85 0
 31
+R5
 R6
 R7
-R8
 !i113 1
-R9
+R8
 vmemory_stage
 R0
 R1
@@ -87,19 +87,19 @@ R2
 !s105 memory_stage_sv_unit
 S1
 R3
-R4
+R9
 8rtl/core/memory_stage.sv
 Frtl/core/memory_stage.sv
 L0 3
-R5
+R4
 r1
 !s85 0
 31
+R5
 R6
 R7
-R8
 !i113 1
-R9
+R8
 vregister_file
 R0
 R1
@@ -110,22 +110,22 @@ R2
 !s105 register_file_sv_unit
 S1
 R3
-R4
+R9
 8rtl/core/register_file.sv
 Frtl/core/register_file.sv
 L0 16
-R5
+R4
 r1
 !s85 0
 31
+R5
 R6
 R7
-R8
 !i113 1
-R9
+R8
 vtop_processor
 R0
-R1
+Z10 !s110 1782103238
 !i10b 1
 !s100 i3kY_c>D`EEYH>im9BGKz2
 IT;CDnbL<RcIc6BLlSD9OS2
@@ -137,15 +137,15 @@ w1782092270
 8rtl/top_processor.sv
 Frtl/top_processor.sv
 L0 3
-R5
+R4
 r1
 !s85 0
 31
+R5
 R6
 R7
-R8
 !i113 1
-R9
+R8
 vupdate_pc
 R0
 R1
@@ -156,22 +156,22 @@ R2
 !s105 update_pc_sv_unit
 S1
 R3
-R4
+R9
 8rtl/core/update_pc.sv
 Frtl/core/update_pc.sv
 L0 6
-R5
+R4
 r1
 !s85 0
 31
+R5
 R6
 R7
-R8
 !i113 1
-R9
+R8
 vwriteback
 R0
-R1
+R10
 !i10b 1
 !s100 YmjIRCCf<5jgjzH:;kSc_0
 I_I05QS9Z1`Z@^5mU_]ooZ0
@@ -179,16 +179,16 @@ R2
 !s105 writeback_sv_unit
 S1
 R3
-R4
+R9
 8rtl/core/writeback.sv
 Frtl/core/writeback.sv
 L0 3
-R5
+R4
 r1
 !s85 0
 31
+R5
 R6
 R7
-R8
 !i113 1
-R9
+R8
