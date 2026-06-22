@@ -7,188 +7,188 @@ z2
 !i10e 25
 !i10f 100
 cModel Technology
-Z0 dC:/Users/aliso/Custom-RISC-V-SoC-Design-on-FPGA/sim
+dC:/Users/aliso/Custom-RISC-V-SoC-Design-on-FPGA/sim
 vdecode
-Z1 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
-Z2 !s110 1781764574
+Z0 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
+Z1 !s110 1782092786
 !i10b 1
 !s100 RDUC?SU6Ua3Vi`>lm@DJm0
-I4OCJ<Kzo::?_=lPV:K_Gl1
-Z3 VDg1SIo80bB@j0V0VzS_@n1
+I3:b6VOVG97lBKh>POWVH?0
+Z2 VDg1SIo80bB@j0V0VzS_@n1
 !s105 decode_sv_unit
 S1
-R0
-w1781764170
-8../rtl/core/decode.sv
-F../rtl/core/decode.sv
+Z3 dC:/Users/aliso/Custom-RISC-V-SoC-Design-on-FPGA
+Z4 w1781798679
+8rtl/core/decode.sv
+Frtl/core/decode.sv
 L0 10
-Z4 OV;L;10.5b;63
+Z5 OV;L;10.5b;63
 r1
 !s85 0
 31
-Z5 !s108 1781764574.000000
-Z6 !s107 ../rtl/top_processor.sv|../rtl/core/writeback.sv|../rtl/core/memory_stage.sv|../rtl/core/execute.sv|../rtl/core/register_file.sv|../rtl/core/decode.sv|../rtl/core/fetch.sv|../rtl/core/update_pc.sv|
-Z7 !s90 -reportprogress|300|-f|../filelist_core.f|
+Z6 !s108 1782092786.000000
+Z7 !s107 rtl/top_processor.sv|rtl/core/writeback.sv|rtl/core/memory_stage.sv|rtl/core/execute.sv|rtl/core/register_file.sv|rtl/core/decode.sv|rtl/core/fetch.sv|rtl/core/update_pc.sv|
+Z8 !s90 -reportprogress|300|-f|filelist_core.f|
 !i113 1
-Z8 tCvgOpt 0
+Z9 tCvgOpt 0
 vexecute
+R0
 R1
-R2
 !i10b 1
 !s100 QOAnLlL@Yl4SIKUT4E53=2
-Idk_FbUH6Ed:V5bh<X_7[W2
-R3
+I;4XeoFXU9`?>5@bIe86@b0
+R2
 !s105 execute_sv_unit
 S1
-R0
-w1781711565
-8../rtl/core/execute.sv
-F../rtl/core/execute.sv
-L0 3
+R3
 R4
+8rtl/core/execute.sv
+Frtl/core/execute.sv
+L0 3
+R5
 r1
 !s85 0
 31
-R5
 R6
 R7
-!i113 1
 R8
+!i113 1
+R9
 vfetch
+R0
 R1
-R2
 !i10b 1
-!s100 78deG4EfB6E>d[A5G^hTh1
-IHYjnaB]>z`f[fTazi8Eb<3
-R3
+!s100 0kad2ocQ;zJ6N6UGz7F?n2
+IB>^TAn[ZZ`TLUH1n_[PPN0
+R2
 !s105 fetch_sv_unit
 S1
-R0
-w1781764072
-8../rtl/core/fetch.sv
-F../rtl/core/fetch.sv
+R3
+w1782091773
+8rtl/core/fetch.sv
+Frtl/core/fetch.sv
 L0 5
-R4
+R5
 r1
 !s85 0
 31
-R5
 R6
 R7
-!i113 1
 R8
+!i113 1
+R9
 vmemory_stage
+R0
 R1
-R2
 !i10b 1
 !s100 3XGlgT_S0[eW_c5e1`59Q0
-I85Lml8WA<?UAQVm0>zizL0
-R3
+ImUcWPG01M`>Jk_?;c1PGQ0
+R2
 !s105 memory_stage_sv_unit
 S1
-R0
-w1781498749
-8../rtl/core/memory_stage.sv
-F../rtl/core/memory_stage.sv
-L0 3
+R3
 R4
+8rtl/core/memory_stage.sv
+Frtl/core/memory_stage.sv
+L0 3
+R5
 r1
 !s85 0
 31
-R5
 R6
 R7
-!i113 1
 R8
+!i113 1
+R9
 vregister_file
+R0
 R1
-R2
 !i10b 1
 !s100 oSEC1DNQQ]eCEI>S^R<e_1
-I<g_0ef:RS8R9j_;YA;k550
-R3
+IS^N]o0FDiJVcPDg47MIfT1
+R2
 !s105 register_file_sv_unit
 S1
-R0
-w1781764017
-8../rtl/core/register_file.sv
-F../rtl/core/register_file.sv
-L0 16
+R3
 R4
+8rtl/core/register_file.sv
+Frtl/core/register_file.sv
+L0 16
+R5
 r1
 !s85 0
 31
-R5
 R6
 R7
-!i113 1
 R8
+!i113 1
+R9
 vtop_processor
+R0
 R1
-R2
 !i10b 1
-!s100 YJjk9dE:HmQQ>iC=i0KOJ1
-I58EFi2Xj01^d;X92hT_2[2
-R3
+!s100 i3kY_c>D`EEYH>im9BGKz2
+IT;CDnbL<RcIc6BLlSD9OS2
+R2
 !s105 top_processor_sv_unit
 S1
-R0
-w1781764403
-8../rtl/top_processor.sv
-F../rtl/top_processor.sv
+R3
+w1782092270
+8rtl/top_processor.sv
+Frtl/top_processor.sv
 L0 3
-R4
+R5
 r1
 !s85 0
 31
-R5
 R6
 R7
-!i113 1
 R8
+!i113 1
+R9
 vupdate_pc
+R0
 R1
-R2
 !i10b 1
 !s100 :lgfDXBnZ__=5m[NG;G2[3
-I^H9YD6>n6S9o15PG6R6o`2
-R3
+IDijlI3FiH02:TT?@@@oXO0
+R2
 !s105 update_pc_sv_unit
 S1
-R0
-w1781763941
-8../rtl/core/update_pc.sv
-F../rtl/core/update_pc.sv
-L0 6
+R3
 R4
+8rtl/core/update_pc.sv
+Frtl/core/update_pc.sv
+L0 6
+R5
 r1
 !s85 0
 31
-R5
 R6
 R7
-!i113 1
 R8
+!i113 1
+R9
 vwriteback
+R0
 R1
-R2
 !i10b 1
 !s100 YmjIRCCf<5jgjzH:;kSc_0
-I_G6=Zimn9S@4619eWc=JW0
-R3
+I_I05QS9Z1`Z@^5mU_]ooZ0
+R2
 !s105 writeback_sv_unit
 S1
-R0
-w1781759889
-8../rtl/core/writeback.sv
-F../rtl/core/writeback.sv
-L0 3
+R3
 R4
+8rtl/core/writeback.sv
+Frtl/core/writeback.sv
+L0 3
+R5
 r1
 !s85 0
 31
-R5
 R6
 R7
-!i113 1
 R8
+!i113 1
+R9

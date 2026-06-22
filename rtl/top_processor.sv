@@ -2,7 +2,7 @@
 
 module top_processor (
     input logic clk, reset,
-    logic [31:0] display_rd_data
+    output logic [31:0] display_rd_data
 );
     // update_pc
     logic branch_b, jump_b;
@@ -36,7 +36,7 @@ module top_processor (
     logic [4:0] last_reg_num;
     logic [31:0] last_reg_data;
 
-    // do i need to pass in the current pc into update_pc
+    
     // synchronous on pos clock edge
     update_pc pc0 (.clk(clk), .reset(reset), .branch_b(branch_b), .jump_b(jump_b), .branch_addr(branch_addr), .jump_addr(jump_addr), .out_pc(current_pc));
     
@@ -46,7 +46,7 @@ module top_processor (
                 .jump_enable(jump_enable), .branch_enable(branch_enable), .load_enable(load_enable), .store_enable(store_enable),
                 .rd_enable(rd_enable), .ALUSrc(ALUSrc), .use_pc(use_pc), .size(size), .branch_type(branch_type));
     
-    // also how do we reference other files (include?)
+    
     // destinatin register written to on next clock edge
     register_file reg_f0 (.clk(clk), .reset(reset), .rd_enable(rd_enable), .rs1_num(rs1_num), .rs2_num(rs2_num),
                             .rd_num(last_reg_num), .rd_data(last_reg_data), .rs1_data(rs1_data), .rs2_data(rs2_data));
