@@ -20,7 +20,6 @@ module top_processor (
     logic [2:0] size, branch_type;
 
     // register_file
-    logic [31:0] rd_data;
     logic [31:0] rs1_data, rs2_data;
 
     // execute
