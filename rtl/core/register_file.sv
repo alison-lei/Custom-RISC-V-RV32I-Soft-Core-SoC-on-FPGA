@@ -10,15 +10,17 @@ second register file in hardware — two separate arrays of 32 registers.
 That's not what you want.
 The register file is instantiated once at the top level and its read/write ports are wired to wherever they're needed.
 It's shared hardware, not reusable code.
-
+Can just leave certain ports unfilled if just read or just write
 */
 
-module register_file (
-    input logic clk, reset, rd_enable, input logic [4:0] rs1_num, rs2_num, rd_num, input logic [31:0] rd_data,
+module register_file_read (
+    input logic clk, reset, rd_enable,
+    input logic [4:0] rs1_num, rs2_num, rd_num,
+    input logic [31:0] rd_data,
     output logic [31:0] rs1_data, rs2_data
 );
-    // Create 2D array, 32 registers each 32 bits
-    logic [31:0] register_array [31:0];
+    // Create 2D array, 32 registers each 32 bits, maybe write this in higher level
+    logic [31:0] register_array [0:31];
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset) begin

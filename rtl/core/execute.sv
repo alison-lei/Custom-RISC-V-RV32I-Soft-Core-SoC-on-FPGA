@@ -5,14 +5,14 @@ module execute (
     input logic [3:0] ALU_ctrl,
     input logic [4:0] rd_num, rs1_num, rs2_num,
     input logic [31:0] immediate, in_pc, rs1_data, rs2_data,
-    input logic jump_enable, branch_enable, mem_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
+    input logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
     input logic [2:0] size, branch_type,
     
     output logic [31:0] final_reg_data, mem_addr, branch_addr, jump_addr, out_pc,
     output logic [4:0] final_reg_num,
     output logic mem_stage_enable, branch_b, jump_b, ld_enable, st_enable,
     output logic [2:0] mem_size
-    // mem_stage_enable = 1 --> load or store from memory
+    // mem_stage_enable = 1 --> load or store, go to memory stage
     // mem_stage_enable = 0 --> pass by memory stage straight to writeback
 );
     typedef enum logic [3:0] {
@@ -47,7 +47,7 @@ module execute (
         if (rd_enable)
             final_reg_num = rd_num;
 
-        mem_stage_enable = mem_enable; // do i even need mem_enable, can technically replace with if ld or st
+        mem_stage_enable = (load_enable || store_enable) ? 1'b1 : 1'b0;
         mem_size = size;
         ld_enable = load_enable;
         st_enable = store_enable;
@@ -109,7 +109,7 @@ module execute (
             end
          end
 
-        if (mem_enable)
+        if (load_enable || store_enable)
             mem_addr = rs1_data + immediate;
 
         if (branch_b)
