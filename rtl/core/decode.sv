@@ -71,6 +71,9 @@ module decode (
         ALUSrc = 1'b0;
         use_pc = 1'b0;
 
+        op = ADD;
+        sz = BYTE;
+
         case (opcode)
             7'b0110011 : begin // R-type
                 case (funct3)
@@ -100,7 +103,7 @@ module decode (
                 rd_num = rd;
 
             end
-            7'b0010011 : begin // I-type addi, slli, lw
+            7'b0010011 : begin // I-type addi, slli
                 imm = {{20{instr[31]}}, instr[31:20]};
 
                 case (funct3)

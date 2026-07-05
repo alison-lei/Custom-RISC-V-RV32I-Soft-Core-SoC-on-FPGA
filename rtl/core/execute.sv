@@ -43,17 +43,14 @@ module execute (
         if (rd_enable)
             ex_reg_num = rd_num;
 
+        ex_reg_data = 32'b0;
+        mem_addr = 32'b0;
+        branch_b = 1'b0;
+        branch_addr = 32'b0;
+        jump_b = 1'b0;
+        jump_addr = 32'b0;
+
         case (operation_type'(ALU_ctrl))
-            default : begin
-                ex_reg_data = 32'b0;
-                mem_addr = 32'b0;
-
-                branch_b = 1'b0;
-                branch_addr = 32'b0;
-                jump_b = 1'b0;
-                jump_addr = 32'b0;
-            end
-
             ADD : ex_reg_data = rs1_data + operand2;
             SUB : ex_reg_data = rs1_data - operand2;
             AND : ex_reg_data = rs1_data & operand2;
@@ -75,9 +72,6 @@ module execute (
             branch_addr = in_pc + $signed(immediate);
 
             case (branch_label'(branch_type))
-                default : begin
-                    branch_b = 1'b0;
-                end
                 BEQ : branch_b = ex_reg_data == 32'b0 ? 1'b1 : 1'b0;
                 BNE : branch_b = ex_reg_data != 32'b0 ? 1'b1 : 1'b0;
                 BLT : branch_b = ex_reg_data == 32'b1 ? 1'b1 : 1'b0;
