@@ -13,7 +13,7 @@ It's shared hardware, not reusable code.
 Can just leave certain ports unfilled if just read or just write
 */
 
-module register_file_read (
+module register_file (
     input logic clk, reset, rd_enable,
     input logic [4:0] rs1_num, rs2_num, rd_num,
     input logic [31:0] rd_data,
@@ -27,7 +27,7 @@ module register_file_read (
             for (int i = 0; i < 32; i++)
                 register_array[i] <= 32'b0;
         end
-        else if (rd_enable and rd_num != 5'b0)
+        else if (rd_enable && rd_num != 5'b0)
             register_array[rd_num] <= rd_data;
             // do i need to do a separate if else statement if rd_num is 5'b0
     end
