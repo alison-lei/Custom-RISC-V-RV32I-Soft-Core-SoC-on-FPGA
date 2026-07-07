@@ -21,7 +21,7 @@ module memory_stage (
     assign data_size = st_ld_size'(size);
 
     // this memory is word granularity
-    logic [31:0] memory [0:255]; // 256 memory blocks each 32 bits, maybe make this in higher level?
+    logic [31:0] memory [0:255]; // 256 memory blocks each 32 bits, 1KB
 
     logic [31:0] ld_data_temp;
     logic [29:0] word_addr;
