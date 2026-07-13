@@ -189,7 +189,7 @@ module decode (
                 branch_type = funct3;
             end
             7'b0110111 : begin // U-type lui
-                imm = {instr[31:12], {12{1'b0}}}; 
+                imm = {instr[31:12], {12'b0}}; 
                 op = PASS;
                 ALUSrc = 1'b1;
                 rd_num = rd;
@@ -197,7 +197,7 @@ module decode (
 
             end
             7'b0010111 : begin // U-type auipc, add upper immediate to pc
-                imm = {instr[31:12], {12{1'b0}}}; 
+                imm = {instr[31:12], {12'b0}}; 
 
                 op = PASS;
 

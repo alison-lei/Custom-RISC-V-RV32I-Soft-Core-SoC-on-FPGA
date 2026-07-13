@@ -10,7 +10,7 @@ cModel Technology
 dC:/Users/aliso/Custom-RISC-V-SoC-Design-on-FPGA/sim
 vdecode
 Z0 DXx6 sv_std 3 std 0 22 AD7iAPLo6nTIKk<N0eo=D3
-Z1 !s110 1783292264
+Z1 !s110 1783877004
 !i10b 1
 !s100 n2E@gf2CWD1W<oRC6Q^Jh1
 IhHBD6ZbB:z4fc;ILTAaYn3
@@ -26,14 +26,14 @@ Z4 OV;L;10.5b;63
 r1
 !s85 0
 31
-Z5 !s108 1783292264.000000
+Z5 !s108 1783877004.000000
 Z6 !s107 rtl/top_processor.sv|rtl/core/writeback.sv|rtl/core/memory_stage.sv|rtl/core/execute.sv|rtl/core/register_file.sv|rtl/core/decode.sv|rtl/core/fetch.sv|rtl/core/update_pc.sv|
 Z7 !s90 -reportprogress|300|-f|filelist_core.f|
 !i113 1
 Z8 tCvgOpt 0
 vexecute
 R0
-R1
+Z9 !s110 1783877005
 !i10b 1
 !s100 I7M1chFR8<;J:LC402@I32
 IH@1Gz^E8zfQCOQS]jMZ0]3
@@ -58,13 +58,13 @@ vfetch
 R0
 R1
 !i10b 1
-!s100 0kad2ocQ;zJ6N6UGz7F?n2
-IB>^TAn[ZZ`TLUH1n_[PPN0
+!s100 fdjWC]7ElR<GeaYnz<o=E1
+IJ4JM]6AKCbmz5P>RP;V]b2
 R2
 !s105 fetch_sv_unit
 S1
 R3
-w1783288452
+w1783406278
 8rtl/core/fetch.sv
 Frtl/core/fetch.sv
 L0 5
@@ -79,7 +79,7 @@ R7
 R8
 vmemory_stage
 R0
-R1
+R9
 !i10b 1
 !s100 3XGlgT_S0[eW_c5e1`59Q0
 ImUcWPG01M`>Jk_?;c1PGQ0
@@ -87,7 +87,7 @@ R2
 !s105 memory_stage_sv_unit
 S1
 R3
-Z9 w1781798679
+w1783320990
 8rtl/core/memory_stage.sv
 Frtl/core/memory_stage.sv
 L0 3
@@ -102,7 +102,7 @@ R7
 R8
 vregister_file
 R0
-R1
+R9
 !i10b 1
 !s100 oSEC1DNQQ]eCEI>S^R<e_1
 IS^N]o0FDiJVcPDg47MIfT1
@@ -110,7 +110,7 @@ R2
 !s105 register_file_sv_unit
 S1
 R3
-R9
+w1783320385
 8rtl/core/register_file.sv
 Frtl/core/register_file.sv
 L0 16
@@ -125,15 +125,15 @@ R7
 R8
 vtop_processor
 R0
-R1
+R9
 !i10b 1
-!s100 ?b[7kC::dd0=DVDejOSKo2
-IZEY>@N>^=<E16[`5AHI831
+!s100 <K1AjA<6UEJaCOhG^fGNW2
+I51<ldhYOzP7QbH=BQX76Y2
 R2
 !s105 top_processor_sv_unit
 S1
 R3
-w1783287417
+w1783876996
 8rtl/top_processor.sv
 Frtl/top_processor.sv
 L0 3
@@ -156,7 +156,7 @@ R2
 !s105 update_pc_sv_unit
 S1
 R3
-R9
+w1783406149
 8rtl/core/update_pc.sv
 Frtl/core/update_pc.sv
 L0 6
@@ -171,7 +171,7 @@ R7
 R8
 vwriteback
 R0
-R1
+R9
 !i10b 1
 !s100 YmjIRCCf<5jgjzH:;kSc_0
 I_I05QS9Z1`Z@^5mU_]ooZ0
@@ -179,7 +179,7 @@ R2
 !s105 writeback_sv_unit
 S1
 R3
-R9
+w1781798679
 8rtl/core/writeback.sv
 Frtl/core/writeback.sv
 L0 3
