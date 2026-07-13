@@ -2,7 +2,9 @@
 
 module top_processor (
     input logic clk, reset,
-    output logic [31:0] display_rd_data
+    input logic sw0,
+    input logic butn0, butn1, butn2, butn3,
+    output logic [31:0] last_reg_data
 );
     // update_pc
     logic branch_b, jump_b;
@@ -31,13 +33,18 @@ module top_processor (
     logic [31:0] mem_addr;
     logic [4:0] execute_rd_num;
 
+    // RAM and peripherals
+    // WTF, GPIO SEL AND READ_DATA IS USELESS?
+    // no point if gpios like button and switches are hardcoded
+    assign buttons = {butn3, butn2, butn1, butn0}
+    logic [31:0] spi_read_data, interrupt_read_data;
+
     // memory_stage
     logic [31:0] mem_stage_rd_data;
     logic [4:0] mem_stage_rd_num;
 
     // writeback
     logic [4:0] last_reg_num;
-    logic [31:0] last_reg_data;
 
     // implement Harvard architecture as fetch and memory state access memory at different times for different reasons
     // synchronous on pos clock edge
@@ -65,7 +72,17 @@ module top_processor (
     /*output*/  .ex_reg_data(execute_rd_data), .mem_addr(mem_addr), .branch_addr(branch_addr), .jump_addr(jump_addr),
                 .ex_reg_num(execute_rd_num), .branch_b(branch_b), .jump_b(jump_b));
 
-    // store data written to memory on next clock edge
+    // store data written to memory on next clock edge and load data
+    data_ram dr0 (.clk(clk), .dataram_sel(dataram_sel), .ld_enable(ld_enable), .st_enable(st_enable), .size(size), .st_data(rs2_data),
+                    .mem_addr(target_mem_index), .dataram_read_data())
+    // might get rid of all gpio_sel and gpio_read_data
+    // each peripheral outputs its own read_data wire and memory_stage picks the correct one
+    // this is the new one, below is old one
+    memory_stage memstge0 (.ld_enable(ld_enable), .final_reg_num(rd_num), .dataram_sel(dataram_sel), .gpio_sel(gpio_sel), .spi_sel(spi_sel),
+                            .interrupt_sel(interrupt_sel), .dataram_read_data(dataram_read_data), .gpio_reaad_data(gpio_read_data),
+                            .spi_read_data(spi_read_data), .interrupt_read_data(interrupt_read_data), .load_reg_data(mem_stage_rd_data),
+                            .load_reg_num(mem_stage_rd_num));
+
     memory_stage memstge0 (.clk(clk), .ld_enable(load_enable), .st_enable(store_enable), .size(size), .final_reg_num(rd_num),
                             .st_data(rs2_data), .mem_addr(target_mem_indx), .load_reg_data(mem_stage_rd_data), .load_reg_num(mem_stage_rd_num));
 
@@ -73,6 +90,5 @@ module top_processor (
                     .ex_final_reg_data(execute_rd_data), .mem_load_reg_data(mem_stage_rd_data), .last_reg_num(last_reg_num),
                     .last_reg_data(last_reg_data));
 
-    assign display_rd_data = last_reg_data;
-
 endmodule
+

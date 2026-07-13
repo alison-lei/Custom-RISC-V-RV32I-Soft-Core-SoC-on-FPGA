@@ -16,7 +16,7 @@ force {reset} 0
 
 # ── ADDI x1, x0, 1  (x1 = 1)  —  00100093 ───────────────────────────────────
 echo "--- \[ADDI x1, x0, 1\] ---"
-set result [examine -hex /top_processor/display_rd_data]
+set result [examine -hex /top_processor/last_reg_data]
 if { $result == "00000001" } {
     echo "  PASS: x1 = 1"
 } else {
@@ -26,7 +26,7 @@ run 10ns
 
 # ── ADDI x2, x0, 2  (x2 = 2)  —  00200113 ───────────────────────────────────
 echo "--- \[ADDI x2, x0, 2\] ---"
-set result [examine -hex /top_processor/display_rd_data]
+set result [examine -hex /top_processor/last_reg_data]
 if { $result == "00000002" } {
     echo "  PASS: x2 = 2"
 } else {
@@ -36,7 +36,7 @@ run 10ns
 
 # ── ADD x3, x1, x2  (x3 = 3)  —  002081B3 ───────────────────────────────────
 echo "--- \[ADD x3, x1, x2\] ---"
-set result [examine -hex /top_processor/display_rd_data]
+set result [examine -hex /top_processor/last_reg_data]
 if { $result == "00000003" } {
     echo "  PASS: x3 = 3"
 } else {
@@ -46,7 +46,7 @@ run 10ns
 
 # ── SUB x4, x3, x1  (x4 = 2)  —  40118233 ───────────────────────────────────
 echo "--- \[SUB x4, x3, x1\] ---"
-set result [examine -hex /top_processor/display_rd_data]
+set result [examine -hex /top_processor/last_reg_data]
 if { $result == "00000002" } {
     echo "  PASS: x4 = 2"
 } else {
@@ -56,7 +56,7 @@ run 10ns
 
 # ── LUI x5, 0  (x5 = 0)  —  000002B7 ────────────────────────────────────────
 echo "--- \[LUI x5, 0\] ---"
-set result [examine -hex /top_processor/display_rd_data]
+set result [examine -hex /top_processor/last_reg_data]
 if { $result == "00000000" } {
     echo "  PASS: x5 = 0"
 } else {
@@ -66,7 +66,7 @@ run 10ns
 
 # ── ADDI x5, x5, 0x340  (x5 = 0x340)  —  34028293 ───────────────────────────
 echo "--- \[ADDI x5, x5, 0x340\] ---"
-set result [examine -hex /top_processor/display_rd_data]
+set result [examine -hex /top_processor/last_reg_data]
 if { $result == "00000340" } {
     echo "  PASS: x5 = 0x340"
 } else {
@@ -87,7 +87,7 @@ run 10ns
 # know what is stored at address 0 becuase previously stored with 0x340
 # ── LW x6, 0(x0)  —  00002303 ────────────────────────────────────────────────
 echo "--- \[LW x6, 0\[x0\]\] ---"
-set result [examine -hex /top_processor/display_rd_data]
+set result [examine -hex /top_processor/last_reg_data]
 if { $result == "00000340" } {
     echo "  PASS: x6 = 0x340 loaded from mem\[0\]"
 } else {
@@ -187,5 +187,5 @@ echo "=== SIMULATION COMPLETE ==="
 #echo "__simulation_results__"
 ## examine / means from the root of simulation, so where you instantiate top module
 #echo "Operation type: [examine /top_processor/ALU_ctrl]"
-#echo "final data value: [examine /top_processor/display_rd_data]"
+#echo "final data value: [examine /top_processor/last_reg_data]"
 #echo "final_reg_num: [examine /top_processor/last_reg_num]"
