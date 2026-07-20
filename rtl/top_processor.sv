@@ -9,9 +9,20 @@ module top_processor (
     // update_pc
     logic branch_b, jump_b;
     logic [31:0] branch_addr, jump_addr;
+    
+    // interrupts
+    // initialization of csr registers
+    logic [31:0] mstatus, mie, mtvec, mepc, mcause;
+    logic csr_enable, mret_enable;
+    logic [31:0] csr_addr;
+    logic [1:0] csr_operation;
+    logic [31:0] csr_read_data, csr_write_data;
+    logic irq, iack;
+    logic [3:0] interrupt_id;
+
 
     // bus
-    logic dataram_sel, gpio_sel, spi_sel, interrupt_sel;
+    logic dataram_sel, spi_sel, interrupt_sel;
     logic [31:0] target_mem_indx;
 
     // fetch
@@ -37,8 +48,8 @@ module top_processor (
     // WTF, GPIO SEL AND READ_DATA IS USELESS?
     // no point if gpios like button and switches are hardcoded
     assign buttons = {butn3, butn2, butn1, butn0}
-    logic [31:0] spi_read_data, interrupt_read_data;
-
+    logic [31:0] dataram_read_data, spi_read_data, interrupt_read_data;
+    
     // memory_stage
     logic [31:0] mem_stage_rd_data;
     logic [4:0] mem_stage_rd_num;
@@ -50,38 +61,73 @@ module top_processor (
     // synchronous on pos clock edge
     update_pc pc0 (.clk(clk), .reset(reset), .branch_b(branch_b), .jump_b(jump_b), .branch_addr(branch_addr), .jump_addr(jump_addr), .out_pc(current_pc));
     
-    bus b0 (.reset(reset), .addr(mem_addr), .dataram_sel(dataram_sel), .gpio_sel(gpio_sel), .spi_sel(spi_sel),
+    bus b0 (.reset(reset), .addr(mem_addr), .dataram_sel(dataram_sel), .spi_sel(spi_sel),
             .interrupt_sel(interrupt_sel), .target_mem_indx(target_mem_indx));
 
     // can write current_pc as it will never go past the instruction partition in memory/surpass 32'h00000FFF
     fetch f0 (.addr(current_pc), .instr(instr));
 
-    // havent changed from current_pc to target_mem_index
-    decode d0 (.instr(instr), .ALU_ctrl(ALU_ctrl), .rd_num(rd_num), .rs1_num(rs1_num), .rs2_num(rs2_num), .immediate(immediate), 
+    // below havent changed from mem_addr to target_mem_index
+    decode d0 (.instr(instr), .ALU_ctrl(ALU_ctrl), .rd_num(rd_num), .rs1_num(rs1_num), .rs2_num(rs2_num), .immediate(immediate), .csr_addr(csr_addr),
                 .jump_enable(jump_enable), .branch_enable(branch_enable), .load_enable(load_enable), .store_enable(store_enable),
-                .rd_enable(rd_enable), .ALUSrc(ALUSrc), .use_pc(use_pc), .size(size), .branch_type(branch_type));
-    
-    
-    // destinatin register written to on next clock edge
+                .rd_enable(rd_enable), .ALUSrc(ALUSrc), .use_pc(use_pc), .csr_enable(csr_enable), .mret_enable(mret_enable),
+                .size(size), .branch_type(branch_type), .csr_operation(csr_operation));
+
+    // destination register written to on next clock edge
     register_file reg_f0 (.clk(clk), .reset(reset), .rd_enable(rd_enable), .rs1_num(rs1_num), .rs2_num(rs2_num),
                             .rd_num(last_reg_num), .rd_data(last_reg_data), .rs1_data(rs1_data), .rs2_data(rs2_data));
 
     execute ex0 (.ALU_ctrl(ALU_ctrl), .rd_num(rd_num), .rs2_num(rs2_num), .immediate(immediate), .in_pc(current_pc),
                 .rs1_data(rs1_data), .rs2_data(rs2_data), .jump_enable(jump_enable), .branch_enable(branch_enable), .load_enable(load_enable),
                 .store_enable(store_enable), .rd_enable(rd_enable), .ALUSrc(ALUSrc), .use_pc(use_pc), .size(size), .branch_type(branch_type),
+                .csr_operation(csr_operation), .csr_enable(csr_enable), .csr_read_data(csr_read_data),
     /*output*/  .ex_reg_data(execute_rd_data), .mem_addr(mem_addr), .branch_addr(branch_addr), .jump_addr(jump_addr),
-                .ex_reg_num(execute_rd_num), .branch_b(branch_b), .jump_b(jump_b));
+                .ex_reg_num(execute_rd_num), .branch_b(branch_b), .jump_b(jump_b), .csr_write_data(csr_write_data));
+
+    gpio_master gpio0 (.clk(clk), .reset(reset), .buttons(buttons), .irq(irq), .interrupt_id(interrupt_id));
 
     // store data written to memory on next clock edge and load data
     data_ram dr0 (.clk(clk), .dataram_sel(dataram_sel), .ld_enable(ld_enable), .st_enable(st_enable), .size(size), .st_data(rs2_data),
-                    .mem_addr(target_mem_index), .dataram_read_data())
-    // might get rid of all gpio_sel and gpio_read_data
+                    .mem_addr(target_mem_index), .dataram_read_data(dataram_read_data));
+    // might get rid of all gpio_sel and gpio_read_data. DID
     // each peripheral outputs its own read_data wire and memory_stage picks the correct one
     // this is the new one, below is old one
-    memory_stage memstge0 (.ld_enable(ld_enable), .final_reg_num(rd_num), .dataram_sel(dataram_sel), .gpio_sel(gpio_sel), .spi_sel(spi_sel),
-                            .interrupt_sel(interrupt_sel), .dataram_read_data(dataram_read_data), .gpio_reaad_data(gpio_read_data),
-                            .spi_read_data(spi_read_data), .interrupt_read_data(interrupt_read_data), .load_reg_data(mem_stage_rd_data),
-                            .load_reg_num(mem_stage_rd_num));
+    memory_stage memstge0 (.ld_enable(ld_enable), .final_reg_num(rd_num), .dataram_sel(dataram_sel), .spi_sel(spi_sel),
+                            .interrupt_sel(interrupt_sel), .dataram_read_data(dataram_read_data), .spi_read_data(spi_read_data),
+                            .interrupt_read_data(interrupt_read_data), .load_reg_data(mem_stage_rd_data), .load_reg_num(mem_stage_rd_num));
+
+
+    always_comb begin
+        csr_read_data = 32'b0;
+        case (csr_addr)
+            12'h300 : csr_read_data = mstatus;
+            12'h304 : csr_read_data = mie;
+            12'h305 : csr_read_data = mtvec;
+            12'h341 : csr_read_data = mepc;
+            12'h342 : csr_read_data = mcause;
+        endcase
+    end
+
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset) begin
+            mstatus <= 32'b0;
+            mie <= 32'b0;
+            mtvec <= 32'b0;
+            mepc <= 32'b0;
+            mcause <=32'b0;
+            csr_write_data <= 32'b0;
+        end
+        else if (csr_enable) begin
+            case (csr_addr)
+                12'h300 : mstatus <= csr_write_data;
+                12'h304 : mie <= csr_write_data;
+                12'h305 : mtvec <= csr_write_data;
+                12'h341 : mepc <= csr_write_data;
+                12'h342 : mcause <= csr_write_data;
+            endcase
+        end
+    end
+
 
     memory_stage memstge0 (.clk(clk), .ld_enable(load_enable), .st_enable(store_enable), .size(size), .final_reg_num(rd_num),
                             .st_data(rs2_data), .mem_addr(target_mem_indx), .load_reg_data(mem_stage_rd_data), .load_reg_num(mem_stage_rd_num));

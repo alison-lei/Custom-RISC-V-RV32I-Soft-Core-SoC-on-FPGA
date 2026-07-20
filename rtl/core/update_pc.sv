@@ -4,14 +4,16 @@
 // _b is boolean value
 
 module update_pc (
-    input logic clk, reset, branch_b, jump_b,
-    input logic [31:0] branch_addr, jump_addr,
+    input logic clk, reset, branch_b, jump_b, mret_enable,
+    input logic [31:0] branch_addr, jump_addr, mepc,
     output logic [31:0] out_pc
 );
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset)
             out_pc <= 32'b0;
+        else if (mret_enable)
+            out_pc <= mepc;
         else if (jump_b)
             out_pc <= jump_addr;
         else if (branch_b)
