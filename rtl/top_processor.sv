@@ -13,7 +13,7 @@ module top_processor (
     // interrupts
     // initialization of csr registers
     logic [31:0] mstatus, mie, mtvec, mepc, mcause;
-    logic csr_enable, mret_enable;
+    logic csr_enable, mret_enable, mtvec_enable;
     logic [31:0] csr_addr;
     logic [1:0] csr_operation;
     logic [31:0] csr_read_data, csr_write_data;
@@ -59,7 +59,8 @@ module top_processor (
 
     // implement Harvard architecture as fetch and memory state access memory at different times for different reasons
     // synchronous on pos clock edge
-    update_pc pc0 (.clk(clk), .reset(reset), .branch_b(branch_b), .jump_b(jump_b), .branch_addr(branch_addr), .jump_addr(jump_addr), .out_pc(current_pc));
+    update_pc pc0 (.clk(clk), .reset(reset), .branch_b(branch_b), .jump_b(jump_b), .mret_enable(mret_enable), .mtvec_enable(mtvec_enable),
+                    .branch_addr(branch_addr), .jump_addr(jump_addr), .mepc(mepc), .mtvec(mtvec), .out_pc(current_pc));
     
     bus b0 (.reset(reset), .addr(mem_addr), .dataram_sel(dataram_sel), .spi_sel(spi_sel),
             .interrupt_sel(interrupt_sel), .target_mem_indx(target_mem_indx));
@@ -96,6 +97,8 @@ module top_processor (
                             .interrupt_sel(interrupt_sel), .dataram_read_data(dataram_read_data), .spi_read_data(spi_read_data),
                             .interrupt_read_data(interrupt_read_data), .load_reg_data(mem_stage_rd_data), .load_reg_num(mem_stage_rd_num));
 
+    interrupt_handler intrpt_hndlr0 ()
+
 
     always_comb begin
         csr_read_data = 32'b0;
@@ -117,6 +120,10 @@ module top_processor (
             mcause <=32'b0;
             csr_write_data <= 32'b0;
         end
+        else if (mtvec_enable) begin
+            mepc <= current_pc;
+            mcause <= 32'h8000000B;
+        end
         else if (csr_enable) begin
             case (csr_addr)
                 12'h300 : mstatus <= csr_write_data;
@@ -126,6 +133,7 @@ module top_processor (
                 12'h342 : mcause <= csr_write_data;
             endcase
         end
+        
     end
 
 

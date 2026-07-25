@@ -1,7 +1,7 @@
 `timescale 1ns / 1ns
 
 module gpio_master (
-    input logic clk, reset,
+    input logic clk, reset, iack,
     input logic [3:0] buttons, // assign values in top_processor, 4 bits for 4 buttons
     output logic irq,
     output logic [3:0] interrupt_id // assume for now 4 buttons
@@ -15,10 +15,10 @@ module gpio_master (
     int but3_clk_count = 0;
 
     always_ff @(posedge clk or posedge reset) begin
-        irq <= 1'b0;
         interrupt_id <= 4'b0;
 
         if (reset) begin
+            irq <= 1'b0;
             but0_clk_count <= 0;
             but1_clk_count <= 0;
             but2_clk_count <= 0;
@@ -31,15 +31,10 @@ module gpio_master (
                     but0_clk_count <= 0;
                     irq <= 1'b1;
                 end
-                else
+                else    
                     but0_clk_count <= but0_clk_count + 1;
-                
-                but1_clk_count <= 0;
-                but2_clk_count <= 0;
-                but3_clk_count <= 0;
-                
             end
-            if (buttons[1]) begin
+            else if (buttons[1]) begin
                 if (but1_clk_count == DEBOUNCER_CLK_CYCLES - 1) begin
                     interrupt_id[1] <= 1'b1;
                     but1_clk_count <= 0;
@@ -47,10 +42,6 @@ module gpio_master (
                 end
                 else
                     but1_clk_count <= but1_clk_count + 1;
-
-                but0_clk_count <= 0;
-                but2_clk_count <= 0;
-                but3_clk_count <= 0;
             end
         end
         else begin
@@ -59,6 +50,9 @@ module gpio_master (
             but2_clk_count <= 0;
             but3_clk_count <= 0;
         end
+
+        if (iack)
+            irq <= 1'b0;
     end
 
 endmodule
