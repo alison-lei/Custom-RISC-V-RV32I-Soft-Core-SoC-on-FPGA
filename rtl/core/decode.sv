@@ -7,7 +7,8 @@ module decode (
     output logic [31:0] immediate,
     output logic [11:0] csr_addr,
     // can be jump and branch instructions (enable), but branch condition might not be satisfied (not _b)
-    output logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc, csr_enable, mret_enable,
+    output logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
+    ouput logic csr_enable, mret_enable, iack,
     output logic [2:0] size, branch_type,
     output logic [1:0] csr_operation
 );
@@ -71,6 +72,7 @@ module decode (
         use_pc = 1'b0;
         csr_enable = 1'b0; // indicates whether the instruction is a csr instruction
         mret_enable = 1'b0; // whether is mret instruction (priviledged RISC-V instruction)
+        iack = 1'b0;
 
         ALU_ctrl = ADD;
         csr_operation = CSRRW;
@@ -84,7 +86,10 @@ module decode (
                 rd_num = rd;
                 case (funct3)
                     3'b000 : begin // if true, then is mret instruction
-                        mret_enable = (instr == 32'h30200073) ? 1'b1: 1'b0;
+                        if (instr == 32'h30200073) begin
+                            mret_enable = 1'b1;
+                            iack = 1'b1;
+                        end
                         csr_enable = 1'b0;
                         rd_enable = 1'b0;
                     end
