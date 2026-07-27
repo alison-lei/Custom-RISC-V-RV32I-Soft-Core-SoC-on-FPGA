@@ -1,20 +1,16 @@
 `timescale 1ns / 1ns
 
-/*
-what's left:
-- enables
-- memory read and write... is that even correct?
-*/
-
-
 module decode (
     input logic [31:0] instr,
     output logic [3:0] ALU_ctrl,
     output logic [4:0] rd_num, rs1_num, rs2_num,
     output logic [31:0] immediate,
+    output logic [11:0] csr_addr,
     // can be jump and branch instructions (enable), but branch condition might not be satisfied (not _b)
     output logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
-    output logic [2:0] size, branch_type
+    ouput logic csr_enable, mret_enable, iack,
+    output logic [2:0] size, branch_type,
+    output logic [1:0] csr_operation
 );
     typedef enum logic [3:0] {
                             ADD = 4'd0,
@@ -30,6 +26,12 @@ module decode (
                             PASS = 4'd10
     } operation_type;
 
+    typedef enum logic [1:0] {
+                            CSRRW = 2'd1,
+                            CSRRS = 2'd2,
+                            CSRRC = 2'd3
+    } csr_operation_type;
+
     typedef enum logic [2:0] {
                             BYTE = 3'b000,
                             H_WORD = 3'b001,
@@ -37,9 +39,6 @@ module decode (
                             BYTE_U = 3'b011,
                             H_WORD_U = 3'b100
     } st_ld_size;
-
-    operation_type op;
-    st_ld_size sz;
 
     logic [31:0] imm;
     logic [6:0]  funct7;
@@ -56,9 +55,10 @@ module decode (
     assign rs1 = instr[19:15];
     assign funct3 = instr[14:12];
     assign rd = instr[11:7];
+    assign csr_addr = instr[31:20];
 
     always_comb begin
-        imm = 32'b0;
+        immediate = 32'b0;
         rd_num = 5'b0;
         rs1_num = 5'b0;
         rs2_num = 5'b0;
@@ -70,31 +70,56 @@ module decode (
         branch_type = 3'b0;
         ALUSrc = 1'b0;
         use_pc = 1'b0;
+        csr_enable = 1'b0; // indicates whether the instruction is a csr instruction
+        mret_enable = 1'b0; // whether is mret instruction (priviledged RISC-V instruction)
+        iack = 1'b0;
 
-        op = ADD;
-        sz = BYTE;
+        ALU_ctrl = ADD;
+        csr_operation = CSRRW;
+        size = BYTE;
 
         case (opcode)
+            7'b1110011 : begin // system instructions
+                csr_enable = 1'b1;
+                rs1_num = rs1;
+                rd_enable = 1'b1;
+                rd_num = rd;
+                case (funct3)
+                    3'b000 : begin // if true, then is mret instruction
+                        if (instr == 32'h30200073) begin
+                            mret_enable = 1'b1;
+                            iack = 1'b1;
+                        end
+                        csr_enable = 1'b0;
+                        rd_enable = 1'b0;
+                    end
+                    3'b001 : csr_operation = CSRRW;
+                    3'b010 : csr_operation = CSRRS;
+                    3'b011 : csr_operation = CSRRC;
+                    default : ;
+                endcase
+            end
             7'b0110011 : begin // R-type
                 case (funct3)
                     3'b000 : begin
                         if (funct7 == 7'b0)
-                            op = ADD;
+                            ALU_ctrl = ADD;
                         else
-                            op = SUB;
+                            ALU_ctrl = SUB;
                     end
-                    3'b001 : op = SLL;
-                    3'b010 : op = SLT;
-                    3'b011 : op = SLTU;
-                    3'b100 : op = XOR;
+                    3'b001 : ALU_ctrl = SLL;
+                    3'b010 : ALU_ctrl = SLT;
+                    3'b011 : ALU_ctrl = SLTU;
+                    3'b100 : ALU_ctrl = XOR;
                     3'b101 : begin
                         if (funct7 == 7'b0)
-                            op = SRL;
+                            ALU_ctrl = SRL;
                         else
-                            op = SRA;
+                            ALU_ctrl = SRA;
                     end
-                    3'b110 : op = OR;
-                    3'b111 : op = AND;
+                    3'b110 : ALU_ctrl = OR;
+                    3'b111 : ALU_ctrl = AND;
+                    default : ;
                 endcase
 
                 rd_enable = 1'b1;
@@ -104,24 +129,25 @@ module decode (
 
             end
             7'b0010011 : begin // I-type addi, slli
-                imm = {{20{instr[31]}}, instr[31:20]};
+                immediate = {{20{instr[31]}}, instr[31:20]};
 
                 case (funct3)
-                    3'b000 : op = ADD;
-                    3'b010 : op = SLT;
-                    3'b011 : op = SLTU;
-                    3'b100 : op = XOR;
-                    3'b110 : op = OR;
-                    3'b111 : op = AND;
-                    3'b001 : op = SLL;
+                    3'b000 : ALU_ctrl = ADD;
+                    3'b010 : ALU_ctrl = SLT;
+                    3'b011 : ALU_ctrl = SLTU;
+                    3'b100 : ALU_ctrl = XOR;
+                    3'b110 : ALU_ctrl = OR;
+                    3'b111 : ALU_ctrl = AND;
+                    3'b001 : ALU_ctrl = SLL;
                     3'b101 : begin
                         if (funct7 == 7'b0)
-                            op = SRL;
+                            ALU_ctrl = SRL;
                         else if (funct7 == 7'b0100000) begin
-                            op = SRA;
-                            imm = {{27{instr[31]}}, instr[24:20]};
+                            ALU_ctrl = SRA;
+                            immediate = {{27{instr[31]}}, instr[24:20]};
                         end
                     end
+                    default : ;
                 endcase
 
                 rd_enable = 1'b1;
@@ -133,16 +159,17 @@ module decode (
             7'b0100011 : begin // S-type sw, sb
                 // rs1 = register containing base address
                 // rs2 = register containing data that needs to be stored
-                // imm = offset to base address that gives the target address
+                // immediate = offset to base address that gives the target address
 
-                imm = {{20{instr[31]}}, instr[31:25], instr[11:7]};
+                immediate = {{20{instr[31]}}, instr[31:25], instr[11:7]};
 
-                op = ADD;
+                ALU_ctrl = ADD;
     
                 case (funct3)
-                    3'b000 : sz = BYTE;
-                    3'b001 : sz = H_WORD;
-                    3'b010 : sz = WORD;
+                    3'b000 : size = BYTE;
+                    3'b001 : size = H_WORD;
+                    3'b010 : size = WORD;
+                    default : ;
                 endcase
                 
                 store_enable = 1'b1;
@@ -152,16 +179,17 @@ module decode (
 
             end
             7'b0000011 : begin // L-type lw, lb
-                imm = {{20{instr[31]}}, instr[31:20]};
+                immediate = {{20{instr[31]}}, instr[31:20]};
 
-                op = ADD;
+                ALU_ctrl = ADD;
     
                 case (funct3)
-                    3'b000 : sz = BYTE;
-                    3'b001 : sz = H_WORD;
-                    3'b010 : sz = WORD;
-                    3'b100 : sz = BYTE_U;
-                    3'b101 : sz = H_WORD_U;
+                    3'b000 : size = BYTE;
+                    3'b001 : size = H_WORD;
+                    3'b010 : size = WORD;
+                    3'b100 : size = BYTE_U;
+                    3'b101 : size = H_WORD_U;
+                    default : ;
                 endcase
 
                 load_enable = 1'b1;
@@ -172,15 +200,16 @@ module decode (
                 
             end
             7'b1100011 : begin // B-type beq, bne
-                imm = {{20{instr[31]}}, instr[7], instr[30:25], instr[11:8] , 1'b0};
+                immediate = {{20{instr[31]}}, instr[7], instr[30:25], instr[11:8] , 1'b0};
 
                 case (funct3)
-                    3'b000 : op = XOR; // check if the xor result is perfectly 0, then is equal, beq
-                    3'b001 : op = XOR; // if xor is not 0, then not perfectly equal, bne
-                    3'b100 : op = SLT; // if get 1, then is less than, blt
-                    3'b101 : op = SLT; // if get 0, then is greater or equal, bge
-                    3'b110 : op = SLTU; // bltu
-                    3'b111 : op = SLTU; // bgeu
+                    3'b000 : ALU_ctrl = XOR; // check if the xor result is perfectly 0, then is equal, beq
+                    3'b001 : ALU_ctrl = XOR; // if xor is not 0, then not perfectly equal, bne
+                    3'b100 : ALU_ctrl = SLT; // if get 1, then is less than, blt
+                    3'b101 : ALU_ctrl = SLT; // if get 0, then is greater or equal, bge
+                    3'b110 : ALU_ctrl = SLTU; // bltu
+                    3'b111 : ALU_ctrl = SLTU; // bgeu
+                    default : ;
                 endcase
 
                 rs1_num = rs1;
@@ -189,17 +218,17 @@ module decode (
                 branch_type = funct3;
             end
             7'b0110111 : begin // U-type lui
-                imm = {instr[31:12], {12'b0}}; 
-                op = PASS;
+                immediate = {instr[31:12], {12'b0}}; 
+                ALU_ctrl = PASS;
                 ALUSrc = 1'b1;
                 rd_num = rd;
                 rd_enable = 1'b1;
 
             end
             7'b0010111 : begin // U-type auipc, add upper immediate to pc
-                imm = {instr[31:12], {12'b0}}; 
+                immediate = {instr[31:12], {12'b0}}; 
 
-                op = PASS;
+                ALU_ctrl = PASS;
 
                 use_pc = 1'b1;
                 ALUSrc = 1'b1;
@@ -208,7 +237,7 @@ module decode (
             end
             // Difference: JALR compute absolute address from register whereas JAL compute PC-relative address
             7'b1101111 : begin // J-type jal
-                imm = {{12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0};
+                immediate = {{12{instr[31]}}, instr[19:12], instr[20], instr[30:21], 1'b0};
                 
                 // this lets it know that this is a jump instruction, and so rd contains PC+4 not ALU output
                 jump_enable = 1'b1;
@@ -218,7 +247,7 @@ module decode (
                 rd_num = rd;
             end
             7'b1100111 : begin // I-type jalr
-                imm = {{20{instr[31]}}, instr[31:20]};
+                immediate = {{20{instr[31]}}, instr[31:20]};
                 
                 jump_enable = 1'b1;
                 ALUSrc = 1'b1;
@@ -226,13 +255,10 @@ module decode (
                 rs1_num = rs1;
                 rd_num = rd;
             end
-            
+            default : ; // do nothing
         endcase
-
     end 
 
     assign immediate = imm;
-    assign ALU_ctrl = op;
-    assign size = sz;
 
 endmodule
