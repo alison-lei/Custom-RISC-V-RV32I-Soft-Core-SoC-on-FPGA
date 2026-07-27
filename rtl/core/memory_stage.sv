@@ -1,72 +1,25 @@
 `timescale 1ns / 1ns
 
 module memory_stage (
-    input logic clk, ld_enable, st_enable,
-    input logic [2:0] size,
+    input logic ld_enable
     input logic [4:0] final_reg_num,
-    input logic [31:0] st_data, mem_addr,
+
+    input logic dataram_sel, spi_sel, interrupt_sel,
+    input logic [31:0] dataram_read_data, spi_read_data, interrupt_read_data,
+
     output logic [31:0] load_reg_data,
     output logic [4:0] load_reg_num
-    // assign default statements to all the case statements?
 );
-    typedef enum logic [2:0] {
-                            BYTE = 3'b000,
-                            H_WORD = 3'b001,
-                            WORD = 3'b010,
-                            BYTE_U = 3'b011,
-                            H_WORD_U = 3'b100
-    } st_ld_size;
-
-    st_ld_size data_size;
-    assign data_size = st_ld_size'(size);
-
-    // this memory is word granularity
-    logic [31:0] memory [0:255]; // 256 memory blocks each 32 bits, maybe make this in higher level?
-
-    logic [31:0] ld_data_temp;
-    logic [29:0] word_addr;
-    logic [1:0] byte_index;
-    logic [4:0] bit_index_ms;
-
-    assign word_addr = mem_addr >> 2;
-    assign byte_index = mem_addr[1:0];
-
+    // use mux to determine which peripheral read_data wire controls load_reg_data
     always_comb begin
-        ld_data_temp = 32'b0;
-        bit_index_ms = 5'd7;
-
-        if (data_size == H_WORD || data_size == H_WORD_U)
-            bit_index_ms = byte_index * 8 + 15;
-        else
-            bit_index_ms = byte_index * 8 + 7;
-
-        if (ld_enable) begin // can do reading in combination block
-            case (data_size)
-                // -: is WIDTH, must be constant, # of bits inclusive
-                BYTE : ld_data_temp = {{24{memory[word_addr][bit_index_ms]}}, {memory[word_addr][bit_index_ms -: 8]}};
-                H_WORD : ld_data_temp = {{16{memory[word_addr][bit_index_ms]}}, {memory[word_addr][bit_index_ms -: 16]}};
-                WORD : ld_data_temp = memory[word_addr];
-                BYTE_U : ld_data_temp = {{24'b0}, {memory[word_addr][bit_index_ms -: 8]}};
-                H_WORD_U : ld_data_temp = {{16'b0}, {memory[word_addr][bit_index_ms -: 16]}};
-                default: ld_data_temp = 32'b0;
-            endcase
-        end
+        load_reg_num = (ld_enable) ? final_reg_num : 5'b0;
+        if (dataram_sel)
+            load_reg_data = dataram_read_data;
+        else if (spi_sel)
+            load_reg_data = spi_read_data;
+        else if (interrupt_sel)
+            load_reg_data = interrupt_read_data;
     end
-
-    // can only write once in one cycle, is state change that needs to be clocked
-    always_ff @(posedge clk) begin
-        if (st_enable) begin
-            case (data_size)
-                BYTE : memory[word_addr][bit_index_ms -: 8] = st_data[7:0];
-                H_WORD : memory[word_addr][bit_index_ms -: 16] = st_data[15:0];
-                WORD : memory[word_addr] = st_data;
-                BYTE_U : memory[word_addr][bit_index_ms -: 8] = st_data[7:0];
-                H_WORD_U : memory[word_addr][bit_index_ms -: 16] = st_data[15:0];
-            endcase
-        end
-    end
-
-    assign load_reg_data = ld_data_temp;
-    assign load_reg_num = (ld_enable) ? final_reg_num : 5'b0;
-
+        // WAIT, do i need the gpio, or do i just have it so it like bus, directs to the correct interrup
+        // so select between the interrupt values? YEP PRETTY MUCH
 endmodule
