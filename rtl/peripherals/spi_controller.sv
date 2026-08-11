@@ -43,6 +43,7 @@ module spi_controller (
     end
 
     // master load in pixel data
+    // does it need to be negedge, or can it be posedge
     always_ff @(negedge sclk or posedge reset) begin
         done <= 1'b0;
         if (reset)
