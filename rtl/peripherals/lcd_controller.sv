@@ -197,14 +197,15 @@ module lcd_controller (
     // use this to send both command and data bytes
     spi_controller spi0 (.clk(clk), .reset(reset), .start(start), .spi_data(byte_data), .done(spi_done));
 
+    // TODO, FIX THE PORTS
+
     always_ff @(posedge clk or posedge reset) begin
         lcd_done <= 1'b0;
         start <= 1'b0;
-        byte_data <= 8'b0;
         lcd_dc <= 1'b1; // send pixel data byte
 
         if (reset) begin
-            state <= IDLE;
+            state <= INITIAL
             counter <= 0;
         end
         else begin
@@ -241,7 +242,6 @@ module lcd_controller (
                         // no need to set init_rom_index back to 0 as this only runs once in the beginning
                         else if (init_rom_index == TOTAL_INIT_COMMANDS - 1) begin
                             state <= IDLE;
-                            next_state <= SEND_HIGH_BYTE;
                         end
                         else begin
                             init_rom_index <= init_rom_index + 1;    
@@ -273,6 +273,9 @@ module lcd_controller (
 
                 end
                 FRAME_WAIT : begin
+                    lcd_dc <= (init_frame[init_frame_index].is_command) ? 1'b0 : 1'b1;
+                    byte_data <= init_frame[init_frame_index].byte_val;
+
                     if (spi_done) begin
                         // need to set init_frame_index back to 0 as this runs every frame
                         if (init_frame_index == TOTAL_FRAME_COMMANDS - 1) begin
@@ -308,13 +311,17 @@ module lcd_controller (
                     next_state <= STOP;
                     start <= 1'b1;
                 end
-                STOP : begin
-                    counter <= counter + 1;
-                    state <= IDLE;
-                    next_state <= SEND_HIGH_BYTE;
-                    if (counter == TOTAL_PIXELS) begin
+                STOP : begin                    
+                    if (counter == TOTAL_PIXELS - 1) begin
                         lcd_done <= 1'b1;
                         counter <= 0;
+                        state <= IDLE;
+                        next_state <= FRAME_CONFIG;
+                    end
+                    else begin
+                        counter <= counter + 1;
+                        state <= SEND_HIGH_BYTE;
+                        sram_addr <= buffer_base_addr + counter + 1;
                     end
                 end
                 default : ;

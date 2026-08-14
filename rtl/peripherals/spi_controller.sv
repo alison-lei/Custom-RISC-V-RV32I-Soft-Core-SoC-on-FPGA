@@ -1,18 +1,22 @@
 `timescale 1ns / 1ns
 
+// sends 8 bits each time
 module spi_controller (
     input logic clk, reset, start,
-    input logic [7:0] pixel_data,
-    output sclk, cs, mosi,
+    input logic [7:0] spi_data,
+    output logic sclk, cs, mosi_data_bit,
     output logic done
 );
+    // better practice instead of literally making a slower sclk, is to
+    // still use the system's native clock but have an enable signal that gets toggled
+
     // the input clk is the FPGA, around 50MHz
     // need to be slower, 5MHz, so need clock divider
 
     typedef enum logic [1:0] {
-                            IDLE = 2'b0,
-                            DATA = 2'b1,
-                            STOP = 2'b10
+        IDLE = 2'b0,
+        DATA = 2'b1,
+        STOP = 2'b10
     } state;
 
     localparam int CLK_FREQ = 50_000_000; // 50 MHz
@@ -24,7 +28,6 @@ module spi_controller (
     int cyc_count = 0;
     state statetype = IDLE;
     logic signed [3:0] bit_index = 7; // because need to check at -1
-    logic mosi_data_bit = 1'b0;
 
     // clk divider in this always_ff block
     always_ff @(posedge clk or posedge reset) begin
@@ -44,7 +47,9 @@ module spi_controller (
 
     // master load in pixel data
     // does it need to be negedge, or can it be posedge
-    always_ff @(negedge sclk or posedge reset) begin
+    always_ff @(posedge sclk or posedge reset) begin
+        cs <= 1'b1;
+        mosi_data_bit <= 1'b0;
         done <= 1'b0;
         if (reset)
             statetype <= IDLE; // idles high
@@ -55,8 +60,9 @@ module spi_controller (
                         statetype <= DATA;
                 end
                 DATA : begin
+                    cs <= 1'b0;
                     if (bit_index != -1) begin
-                        mosi_data_bit <= pixel_data[bit_index];
+                        mosi_data_bit <= spi_data[bit_index];
                         bit_index <= bit_index - 1;
                     end
                     else begin
@@ -72,8 +78,5 @@ module spi_controller (
             endcase
         end
     end
-
-    assign cs = (statetype == DATA) ? 1'b0 : 1'b1;
-    assign mosi = (cs == 1'b0) ? mosi_data_bit : 1'b0;
 
 endmodule
