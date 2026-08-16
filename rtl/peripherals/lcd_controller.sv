@@ -12,10 +12,10 @@
 
 module lcd_controller (
     input logic clk, reset, spi_sram_sel,
-    input logic [17:0] buffer_base_addr,
-    input logic [15:0] sram_data,
+    input logic [19:0] buffer_base_addr, // is 20 bits
+    input logic [15:0] sram_data, // value of that specific pixel
     output logic lcd_done, lcd_dc,
-    output logic [17:0] sram_addr
+    output logic [19:0] sram_addr // address of specific pixel
 );
     // math:
     // 240x320 display, 76800 pixels worth of data must be sent over spi per frame
@@ -290,7 +290,7 @@ module lcd_controller (
                 end
                 SEND_HIGH_BYTE : begin
                     pixel_data <= sram_data;
-                    byte_data <= sram_data >> 8;
+                    byte_data <= pixel_data >> 8;
                     state <= WAIT;
                     next_state <= SEND_LOW_BYTE;
                     start <= 1'b1;
