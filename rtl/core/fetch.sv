@@ -6,8 +6,8 @@ module fetch (
     input logic [31:0] addr,
     output logic [31:0] instr
 );
-    // elements in memory are of word granularity
-    logic [31:0] memory [0:4095]; // 16KB
+    // internal block RAM that FPGA initializes. Not on same bus as dataram, harvard architecture
+    logic [31:0] memory [0:5119]; // 0x4FFF
 
     // when do reset initially, pc is 0, adds by 4 incrementally
     // the first instruction is when pc = 0, so when reset = 1, 
@@ -15,7 +15,7 @@ module fetch (
 
     always_comb begin
         instr = 32'h00000013; // NOP, no operation default ADDI x0, x0, 0
-        if (addr <= 32'h00000FFF)
+        if (addr <= 32'h00004FFF)
             instr = memory[addr >> 2];
     end
 

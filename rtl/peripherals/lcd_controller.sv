@@ -15,7 +15,8 @@ module lcd_controller (
     input logic [19:0] buffer_base_addr, // is 20 bits
     input logic [15:0] sram_data, // value of that specific pixel
     output logic lcd_done, lcd_dc,
-    output logic [19:0] sram_addr // address of specific pixel
+    output logic [19:0] sram_addr, // address of specific pixel
+    output logic sclk, lcd_cs, lcd_mosi
 );
     // math:
     // 240x320 display, 76800 pixels worth of data must be sent over spi per frame
@@ -195,7 +196,8 @@ module lcd_controller (
 
     // when DC (Data/Command) is low then command, high then the byte is pixel data
     // use this to send both command and data bytes
-    spi_controller spi0 (.clk(clk), .reset(reset), .start(start), .spi_data(byte_data), .done(spi_done));
+    spi_controller spi0 (.clk(clk), .reset(reset), .start(start), .spi_data(byte_data),
+                        .sclk(sclk), .cs(lcd_cs), .mosi_data_bit(lcd_mosi), .done(spi_done));
 
     // TODO, FIX THE PORTS
 

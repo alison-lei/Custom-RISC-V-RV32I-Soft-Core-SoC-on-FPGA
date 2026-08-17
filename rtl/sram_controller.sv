@@ -1,7 +1,7 @@
 `timescale 1ns / 1ns
 
 module sram_controller (
-    input logic clk, cpu_we,
+    input logic cpu_we,
     input logic [31:0] cpu_sram_addr,
     input logic [19:0] lcd_sram_addr,
     input logic [15:0] cpu_wdata,

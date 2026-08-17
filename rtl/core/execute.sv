@@ -4,14 +4,13 @@ module execute (
     input logic [3:0] ALU_ctrl,
     input logic [4:0] rd_num, rs2_num,
     input logic [31:0] immediate, in_pc, rs1_data, rs2_data,
-    input logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
+    input logic jump_enable, branch_enable, load_enable, store_enable, ALUSrc, use_pc,
     input logic [2:0] size, branch_type,
     input logic [1:0] csr_operation,
     input logic csr_enable,
     input logic [31:0] csr_read_data,
 
     output logic [31:0] ex_reg_data, mem_addr, branch_addr, jump_addr,
-    output logic [4:0] ex_reg_num,
     output logic branch_b, jump_b,
     output logic [31:0] csr_write_data
 );
@@ -48,10 +47,6 @@ module execute (
 
     always_comb begin
         operand2 = ALUSrc ? immediate : rs2_data;
-
-        ex_reg_num = 5'b0;
-        if (rd_enable)
-            ex_reg_num = rd_num;
 
         ex_reg_data = 32'b0;
         mem_addr = 32'b0;

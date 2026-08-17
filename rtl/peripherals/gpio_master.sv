@@ -6,7 +6,6 @@ module gpio_master (
     output logic irq,
     output logic [3:0] interrupt_id // assume for now 4 buttons
 );
-    // removed gpio_mem because no other modules need to read data from there
     
     localparam int DEBOUNCER_CLK_CYCLES = 1000;
     int but0_clk_count = 0;
@@ -24,6 +23,8 @@ module gpio_master (
             but2_clk_count <= 0;
             but3_clk_count <= 0;
         end
+        // interrupt_pending already taken care of in interrupt_handling, this module just raises an interrupt
+        // whether accepted depends on if already processing an interrupt
         else if (buttons != 4'b000) begin
             if (buttons[0]) begin
                 if (but0_clk_count == DEBOUNCER_CLK_CYCLES - 1) begin

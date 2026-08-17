@@ -8,7 +8,7 @@ module decode (
     output logic [11:0] csr_addr,
     // can be jump and branch instructions (enable), but branch condition might not be satisfied (not _b)
     output logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc,
-    ouput logic csr_enable, mret_enable, iack,
+    output logic csr_enable, mret_enable, iack,
     output logic [2:0] size, branch_type,
     output logic [1:0] csr_operation
 );
