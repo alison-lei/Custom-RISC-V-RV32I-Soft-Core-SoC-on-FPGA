@@ -7,7 +7,7 @@
 
 module top_processor (
     input logic clk, reset,
-    input logic butn0, butn1, butn2, butn3, // need to alter these, in case there is a fixed name already assigned
+    input logic [3:0] KEY, // for buttons
     output logic [31:0] last_reg_data,
 
     output logic [19:0] SRAM_ADDR,
@@ -56,7 +56,7 @@ module top_processor (
     logic [3:0] interrupt_id;
     logic [31:0] interrupt_read_data;
 
-    assign logic [3:0] buttons = {butn3, butn2, butn1, butn0};
+    assign logic [3:0] buttons = ~KEY;
     
 
     // lcd_controller and sram_controller
@@ -192,7 +192,7 @@ module top_processor (
         if (lcd_done && cpu_done) begin
             cpu_done <= 1'b0;
             lcd_done <= 1'b0;
-            swap_bit <= !swap_bit;
+            swap_bit <= ~swap_bit;
             spi_sram_sel <= 1'b1; // spi_sram_sel tells it when the framebuffers were switched and so
                                   // now lcd has a newly written buffer to read and so another frame should be sent
         end

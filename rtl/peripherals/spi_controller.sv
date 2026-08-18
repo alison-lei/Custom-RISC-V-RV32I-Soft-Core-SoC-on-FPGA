@@ -37,7 +37,7 @@ module spi_controller (
         end
         else begin
             if (cyc_count == CLK_DIV_HALF - 1) begin
-                sclk <= !sclk;
+                sclk <= ~sclk;
                 cyc_count <= 0;
             end
             else
