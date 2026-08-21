@@ -258,7 +258,5 @@ module decode (
             default : ; // do nothing
         endcase
     end 
-
-    assign immediate = imm;
-
+    
 endmodule

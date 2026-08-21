@@ -6,3 +6,11 @@ rtl/core/execute.sv
 rtl/core/memory_stage.sv
 rtl/core/writeback.sv
 rtl/top_processor.sv
+rtl/peripherals/gpio_master.sv
+rtl/peripherals/interrupt_handler.sv
+rtl/peripherals/lcd_controller.sv
+rtl/peripherals/spi_controller.sv
+rtl/bus.sv
+rtl/data_ram.sv
+rtl/sram_controller.sv
+sim/lcd_spi_sram_tb.sv

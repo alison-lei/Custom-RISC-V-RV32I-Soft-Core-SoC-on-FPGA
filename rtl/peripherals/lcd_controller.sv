@@ -14,7 +14,7 @@ module lcd_controller (
     input logic clk, reset, spi_sram_sel,
     input logic [19:0] buffer_base_addr, // is 20 bits
     input logic [15:0] sram_data, // value of that specific pixel
-    output logic lcd_done, lcd_dc,
+    output logic lcd_done, init_done, lcd_dc,
     output logic [19:0] sram_addr, // address of specific pixel
     output logic sclk, lcd_cs, lcd_mosi
 );
@@ -25,9 +25,12 @@ module lcd_controller (
 
     localparam int CYCLES_PER_MS = 50000; // 50,000 cycles per ms
     localparam int SYSTEM_CYCLES_PER_SCLK = 10; 
-    localparam int TOTAL_PIXELS = 76800;
-    localparam int TOTAL_INIT_COMMANDS = 18;
-    localparam int TOTAL_FRAME_COMMANDS = 11;
+    // localparam int TOTAL_PIXELS = 76800;
+    // localparam int TOTAL_INIT_COMMANDS = 18;
+    // localparam int TOTAL_FRAME_COMMANDS = 11;
+    localparam int TOTAL_PIXELS = 10;
+    localparam int TOTAL_INIT_COMMANDS = 3;
+    localparam int TOTAL_FRAME_COMMANDS = 2;
     int counter = 0;
 
     typedef enum logic [3:0] {
@@ -64,7 +67,8 @@ module lcd_controller (
         // software reset
         init_rom[0].is_command = 1'b1;
         init_rom[0].byte_val = 8'h01;
-        init_rom[0].delay_ms = 8'd150;
+        // init_rom[0].delay_ms = 8'd150;
+        init_rom[0].delay_ms = 8'd0;
 
         // power control B
         init_rom[1].is_command = 1'b1;
@@ -134,7 +138,8 @@ module lcd_controller (
         // wake up
         init_rom[16].is_command = 1'b1;
         init_rom[16].byte_val = 8'h11;
-        init_rom[16].delay_ms = 8'd120;
+        // init_rom[16].delay_ms = 8'd120;
+        init_rom[16].delay_ms = 8'd0;
 
         // display on
         init_rom[17].is_command = 1'b1;
@@ -199,7 +204,6 @@ module lcd_controller (
     spi_controller spi0 (.clk(clk), .reset(reset), .start(start), .spi_data(byte_data),
                         .sclk(sclk), .cs(lcd_cs), .mosi_data_bit(lcd_mosi), .done(spi_done));
 
-    // TODO, FIX THE PORTS
 
     always_ff @(posedge clk or posedge reset) begin
         lcd_done <= 1'b0;
@@ -207,7 +211,8 @@ module lcd_controller (
         lcd_dc <= 1'b1; // send pixel data byte
 
         if (reset) begin
-            state <= INITIAL
+            state <= INITIAL;
+            init_done <= 1'b0;
             counter <= 0;
         end
         else begin
@@ -218,6 +223,7 @@ module lcd_controller (
                     start <= 1'b1;
                     state <= WAIT_START;
                     next_state <= INITIAL_WAIT;
+                    init_done <= 1'b0;
                 end
                 // because sclk is slower, might not detect start signal
                 WAIT_START : begin
@@ -244,6 +250,7 @@ module lcd_controller (
                         // no need to set init_rom_index back to 0 as this only runs once in the beginning
                         else if (init_rom_index == TOTAL_INIT_COMMANDS - 1) begin
                             state <= IDLE;
+                            init_done <= 1'b1;
                         end
                         else begin
                             init_rom_index <= init_rom_index + 1;    
@@ -292,7 +299,9 @@ module lcd_controller (
                 end
                 SEND_HIGH_BYTE : begin
                     pixel_data <= sram_data;
-                    byte_data <= pixel_data >> 8;
+                    byte_data <= sram_data >> 8; // must be sram_data and not pixel_data as before
+                                                // pixel_data is not initialized so it doesn't get new
+                                                // value of pixel_data which is sram_data, it gets xxxxxx
                     state <= WAIT;
                     next_state <= SEND_LOW_BYTE;
                     start <= 1'b1;
@@ -323,7 +332,9 @@ module lcd_controller (
                     else begin
                         counter <= counter + 1;
                         state <= SEND_HIGH_BYTE;
-                        sram_addr <= buffer_base_addr + counter + 1;
+                        sram_addr <= buffer_base_addr + counter + 1; // remember, counter in this line is the old counter value
+                                                                     // so manually add 1 so sram_data can be calculated correctly
+                                                                     // on next posedge
                     end
                 end
                 default : ;

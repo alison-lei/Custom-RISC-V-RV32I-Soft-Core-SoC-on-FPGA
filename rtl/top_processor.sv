@@ -56,13 +56,13 @@ module top_processor (
     logic [3:0] interrupt_id;
     logic [31:0] interrupt_read_data;
 
-    assign logic [3:0] buttons = ~KEY;
+    logic [3:0] buttons;
+    assign buttons = ~KEY;
     
 
     // lcd_controller and sram_controller
     logic cpu_we;
-    logic cpu_done;
-    logic lcd_done;
+    logic cpu_done, lcd_done, init_done;
     logic swap_bit;
     logic spi_sram_sel;
     logic [15:0] lcd_rdata;
@@ -116,7 +116,7 @@ module top_processor (
                                     .mtvec_enable(mtvec_enable), .interrupt_pending(interrupt_pending), .interrupt_read_data(interrupt_read_data));
     
     lcd_controller lcd_contr (.clk(clk), .reset(reset), .spi_sram_sel(spi_sram_sel), .buffer_base_addr(lcd_buffer_base_addr), .sram_data(lcd_rdata),
-                                .lcd_done(lcd_done), .lcd_dc(lcd_dc), .sram_addr(lcd_sram_addr), .sclk(sclk), .lcd_cs(lcd_cs), .lcd_mosi(lcd_mosi));
+                                .lcd_done(lcd_done), .init_done(init_done), .lcd_dc(lcd_dc), .sram_addr(lcd_sram_addr), .sclk(sclk), .lcd_cs(lcd_cs), .lcd_mosi(lcd_mosi));
 
                                                                                                     // load the last 16 bits
     sram_controller sram_contr (.cpu_we(cpu_we), .cpu_sram_addr(target_mem_index), .lcd_sram_addr(lcd_sram_addr), .cpu_wdata(rs2_data[0 +: 16]), .lcd_rdata(lcd_rdata),
