@@ -25,12 +25,12 @@ module lcd_controller (
 
     localparam int CYCLES_PER_MS = 50000; // 50,000 cycles per ms
     localparam int SYSTEM_CYCLES_PER_SCLK = 10; 
-    // localparam int TOTAL_PIXELS = 76800;
-    // localparam int TOTAL_INIT_COMMANDS = 18;
-    // localparam int TOTAL_FRAME_COMMANDS = 11;
-    localparam int TOTAL_PIXELS = 10;
-    localparam int TOTAL_INIT_COMMANDS = 3;
-    localparam int TOTAL_FRAME_COMMANDS = 2;
+    localparam int TOTAL_PIXELS = 76800;
+    localparam int TOTAL_INIT_COMMANDS = 18;
+    localparam int TOTAL_FRAME_COMMANDS = 11;
+    // localparam int TOTAL_PIXELS = 10;
+    // localparam int TOTAL_INIT_COMMANDS = 3;
+    // localparam int TOTAL_FRAME_COMMANDS = 2;
     int counter = 0;
 
     typedef enum logic [3:0] {
@@ -67,8 +67,8 @@ module lcd_controller (
         // software reset
         init_rom[0].is_command = 1'b1;
         init_rom[0].byte_val = 8'h01;
-        // init_rom[0].delay_ms = 8'd150;
-        init_rom[0].delay_ms = 8'd0;
+        init_rom[0].delay_ms = 8'd150;
+        // init_rom[0].delay_ms = 8'd0;
 
         // power control B
         init_rom[1].is_command = 1'b1;
@@ -138,8 +138,8 @@ module lcd_controller (
         // wake up
         init_rom[16].is_command = 1'b1;
         init_rom[16].byte_val = 8'h11;
-        // init_rom[16].delay_ms = 8'd120;
-        init_rom[16].delay_ms = 8'd0;
+        init_rom[16].delay_ms = 8'd120;
+        // init_rom[16].delay_ms = 8'd0;
 
         // display on
         init_rom[17].is_command = 1'b1;
@@ -206,11 +206,11 @@ module lcd_controller (
 
 
     always_ff @(posedge clk or posedge reset) begin
-        lcd_done <= 1'b0;
-        start <= 1'b0;
-        lcd_dc <= 1'b1; // send pixel data byte
-
         if (reset) begin
+            lcd_done <= 1'b0;
+            start <= 1'b0;
+            lcd_dc <= 1'b1;
+
             state <= INITIAL;
             init_done <= 1'b0;
             counter <= 0;
@@ -224,10 +224,13 @@ module lcd_controller (
                     state <= WAIT_START;
                     next_state <= INITIAL_WAIT;
                     init_done <= 1'b0;
+                    lcd_done <= 1'b0;
                 end
                 // because sclk is slower, might not detect start signal
                 WAIT_START : begin
+                    lcd_done <= 1'b0;
                     if (start_counter == SYSTEM_CYCLES_PER_SCLK - 1) begin
+                        start <= 1'b0;
                         state <= next_state;
                         start_counter <= 0;  
                     end
@@ -237,6 +240,8 @@ module lcd_controller (
                     end
                 end
                 INITIAL_WAIT : begin
+                    start <= 1'b0;
+                    lcd_done <= 1'b0;
                     lcd_dc <= (init_rom[init_rom_index].is_command == 1'b1) ? 1'b0 : 1'b1;
                     byte_data <= init_rom[init_rom_index].byte_val;
 
@@ -260,6 +265,8 @@ module lcd_controller (
                 end
                 
                 DELAY : begin
+                    start <= 1'b0;
+                    lcd_done <= 1'b0;
                     if (delay_counter == delay_amt - 1) begin
                         state <= next_state;
                         init_rom_index <= init_rom_index + 1;
@@ -268,6 +275,8 @@ module lcd_controller (
                         delay_counter <= delay_counter + 1;
                 end
                 IDLE : begin
+                    start <= 1'b0;
+                    lcd_done <= 1'b0;
                     sram_addr <= buffer_base_addr + counter;
                     state <= (spi_sram_sel) ? FRAME_CONFIG : IDLE;
                     next_state <= (spi_sram_sel) ? SEND_HIGH_BYTE : FRAME_CONFIG;
@@ -279,9 +288,11 @@ module lcd_controller (
                     start <= 1'b1;
                     state <= WAIT_START;
                     next_state <= FRAME_WAIT;
-
+                    lcd_done <= 1'b0;
                 end
                 FRAME_WAIT : begin
+                    start <= 1'b0;
+                    lcd_done <= 1'b0;
                     lcd_dc <= (init_frame[init_frame_index].is_command) ? 1'b0 : 1'b1;
                     byte_data <= init_frame[init_frame_index].byte_val;
 
@@ -305,9 +316,13 @@ module lcd_controller (
                     state <= WAIT;
                     next_state <= SEND_LOW_BYTE;
                     start <= 1'b1;
+                    lcd_dc <= 1'b1; // send pixel data byte
+                    lcd_done <= 1'b0;
                 end
                 WAIT : begin
+                    lcd_done <= 1'b0;
                     if (start_counter == SYSTEM_CYCLES_PER_SCLK - 1) begin
+                        start <= 1'b0;
                         state <= (spi_done) ? next_state : WAIT;
                         start_counter <= (spi_done) ? 0 : start_counter;  
                     end
@@ -321,8 +336,10 @@ module lcd_controller (
                     state <= WAIT;
                     next_state <= STOP;
                     start <= 1'b1;
+                    lcd_done <= 1'b0;
                 end
-                STOP : begin                    
+                STOP : begin  
+                    start <= 1'b0;                  
                     if (counter == TOTAL_PIXELS - 1) begin
                         lcd_done <= 1'b1;
                         counter <= 0;
@@ -330,6 +347,7 @@ module lcd_controller (
                         next_state <= FRAME_CONFIG;
                     end
                     else begin
+                        lcd_done <= 1'b0;
                         counter <= counter + 1;
                         state <= SEND_HIGH_BYTE;
                         sram_addr <= buffer_base_addr + counter + 1; // remember, counter in this line is the old counter value

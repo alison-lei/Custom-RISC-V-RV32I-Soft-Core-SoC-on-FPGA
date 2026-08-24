@@ -6,8 +6,7 @@ module data_ram (
     input logic ld_enable, st_enable,
     input logic [2:0] size,
     input logic [31:0] st_data, mem_addr,
-    output logic [31:0] dataram_read_data,
-    output logic [31:0] cpu_done
+    output logic [31:0] dataram_read_data
 );
     typedef enum logic [2:0] {
                             BYTE = 3'b000,
@@ -21,15 +20,18 @@ module data_ram (
     assign data_size = st_ld_size'(size);
 
     // this memory is word granularity
-    logic [31:0] memory [0:959]; // 959 memory blocks each 32 bits
+    logic [31:0] memory [0:959]; // 960 memory blocks each 32 bits
 
-    logic [29:0] word_addr;
+    logic [31:0] word_addr;
     logic [1:0] byte_index;
     logic [4:0] bit_index_ms;
 
     assign word_addr = mem_addr >> 2;
     assign byte_index = mem_addr[1:0];
 
+    // block RAM physically requries loads to be done sequentially, not combinationally,
+    // need clk edge between giving address and getting data stored there back
+    // cannot do the instant read of combinational
     always_comb begin
         dataram_read_data = 32'b0;
         bit_index_ms = 5'd7;
@@ -56,11 +58,11 @@ module data_ram (
     always_ff @(posedge clk) begin
         if (st_enable && dataram_sel) begin
             case (data_size)
-                BYTE : memory[word_addr][bit_index_ms -: 8] = st_data[7:0];
-                H_WORD : memory[word_addr][bit_index_ms -: 16] = st_data[15:0];
-                WORD : memory[word_addr] = st_data;
-                BYTE_U : memory[word_addr][bit_index_ms -: 8] = st_data[7:0];
-                H_WORD_U : memory[word_addr][bit_index_ms -: 16] = st_data[15:0];
+                BYTE : memory[word_addr][bit_index_ms -: 8] <= st_data[7:0];
+                H_WORD : memory[word_addr][bit_index_ms -: 16] <= st_data[15:0];
+                WORD : memory[word_addr] <= st_data;
+                BYTE_U : memory[word_addr][bit_index_ms -: 8] <= st_data[7:0];
+                H_WORD_U : memory[word_addr][bit_index_ms -: 16] <= st_data[15:0];
                 default : ;
             endcase
         end

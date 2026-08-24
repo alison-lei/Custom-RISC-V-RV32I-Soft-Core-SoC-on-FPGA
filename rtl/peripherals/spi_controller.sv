@@ -48,18 +48,22 @@ module spi_controller (
     // master load in pixel data
     // does it need to be negedge, or can it be posedge
     always_ff @(posedge sclk or posedge reset) begin
-        cs <= 1'b1;
-        mosi_data_bit <= 1'b0;
-        done <= 1'b0;
-        if (reset)
+        if (reset) begin
+            cs <= 1'b1;
+            mosi_data_bit <= 1'b0;
+            done <= 1'b0;
             statetype <= IDLE; // idles high
+        end
         else begin
             case (statetype)
                 IDLE : begin
+                    done <= 1'b0;
+                    cs <= 1'b1;
                     if (start)
                         statetype <= DATA;
                 end
                 DATA : begin
+                    done <= 1'b0;
                     cs <= 1'b0;
                     if (bit_index != -1) begin
                         mosi_data_bit <= spi_data[bit_index];
@@ -68,10 +72,12 @@ module spi_controller (
                     else begin
                         statetype <= STOP;
                         bit_index <= 7;
+                        mosi_data_bit <= 1'b0;
                     end
                 end
                 STOP : begin
                     done <= 1'b1;
+                    cs <= 1'b1;
                     statetype <= IDLE;
                 end
                 default : ;

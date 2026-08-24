@@ -11,7 +11,7 @@ module top_processor (
     output logic [31:0] last_reg_data,
 
     output logic [19:0] SRAM_ADDR,
-    inout logic [15:0] SRAM_DQ,
+    inout wire [15:0] SRAM_DQ,
     output logic SRAM_UB_N, SRAM_LB_N, SRAM_CE_N, SRAM_OE_N, SRAM_WE_N,
 
     output logic sclk, lcd_cs, lcd_dc, lcd_mosi
@@ -107,7 +107,7 @@ module top_processor (
 
     // store data written to memory on next clock edge and load data
     data_ram dr0 (.clk(clk), .dataram_sel(dataram_sel), .ld_enable(load_enable), .st_enable(store_enable), .size(size), .st_data(rs2_data),
-                    .mem_addr(target_mem_index), .dataram_read_data(dataram_read_data));
+                    .mem_addr(mem_addr), .dataram_read_data(dataram_read_data));
     
     gpio_master gpio0 (.clk(clk), .reset(reset), .iack(iack), .buttons(buttons), .irq(irq), .interrupt_id(interrupt_id));
 
@@ -125,9 +125,9 @@ module top_processor (
 
     // each peripheral outputs its own read_data wire and memory_stage picks the correct one
     memory_stage memstge0 (.ld_enable(load_enable), .dataram_sel(dataram_sel), .interrupt_sel(interrupt_sel), .dataram_read_data(dataram_read_data),
-                            .interrupt_read_data(interrupt_read_data), .load_reg_data(mem_stage_rd_data));
+                            .interrupt_read_data(interrupt_read_data), .mem_stage_rd_data(mem_stage_rd_data));
 
-    writeback wb0 (.ld_enable(load_enable), .ex_final_reg_data(execute_rd_data), .mem_load_reg_data(mem_stage_rd_data),
+    writeback wb0 (.ld_enable(load_enable), .ex_final_reg_data(execute_rd_data), .mem_stage_rd_data(mem_stage_rd_data),
                     .last_reg_data(last_reg_data));
 
 
@@ -141,10 +141,11 @@ module top_processor (
             12'h305 : csr_read_data = mtvec;
             12'h341 : csr_read_data = mepc;
             12'h342 : csr_read_data = mcause;
+            default : ;
         endcase
 
         // ensures no latency as lcd_controller needs correct base addr when spi_sram_sel is high
-        lcd_buffer_base_addr <= (swap_bit) ? 20'h06000 : 20'h2D100;
+        lcd_buffer_base_addr = (swap_bit) ? 20'h06000 : 20'h2D100;
 
         if (store_enable) begin
             if (swap_bit) begin
@@ -157,48 +158,47 @@ module top_processor (
         end
     end
 
-    always_ff @(posedge clk or posedge reset) begin        
+    always_ff @(posedge clk or posedge reset) begin
         if (reset) begin
             mstatus <= 32'b0;
             mie <= 32'b0;
             mtvec <= 32'b0;
             mepc <= 32'b0;
             mcause <=32'b0;
-            csr_write_data <= 32'b0;
             // swap_bit = 0 means cpu write in A and lcd read in B
             // swap_bit = 1 means cpu write in B and lcd read in A
             swap_bit <= 1'b0;
-            lcd_done <= 1'b1;
             cpu_done <= 1'b1;
         end
-        else if (mtvec_enable) begin
-            mepc <= current_pc;
-            mcause <= 32'h8000000B;
-        end
-        else if (csr_enable) begin
-            case (csr_addr)
-                12'h300 : mstatus <= csr_write_data;
-                12'h304 : mie <= csr_write_data;
-                12'h305 : mtvec <= csr_write_data;
-                12'h341 : mepc <= csr_write_data;
-                12'h342 : mcause <= csr_write_data;
-            endcase
-        end
+        else begin
+            if (mtvec_enable) begin
+                mepc <= current_pc;
+                mcause <= 32'h8000000B;
+            end
+            else if (csr_enable) begin
+                case (csr_addr)
+                    12'h300 : mstatus <= csr_write_data;
+                    12'h304 : mie <= csr_write_data;
+                    12'h305 : mtvec <= csr_write_data;
+                    12'h341 : mepc <= csr_write_data;
+                    12'h342 : mcause <= csr_write_data;
+                    default : ;
+                endcase
+            end
 
-        // cpu writes to address 0x1200 to signal done writing to a framebuffer
-        if (mem_addr == 32'h1200 && store_enable)
-            cpu_done <= 1'b1;
+            // cpu writes to address 0x1200 to signal done writing to a framebuffer
+            if (mem_addr == 32'h1200 && store_enable)
+                cpu_done <= 1'b1;
 
-        if (lcd_done && cpu_done) begin
-            cpu_done <= 1'b0;
-            lcd_done <= 1'b0;
-            swap_bit <= ~swap_bit;
-            spi_sram_sel <= 1'b1; // spi_sram_sel tells it when the framebuffers were switched and so
-                                  // now lcd has a newly written buffer to read and so another frame should be sent
+            if (lcd_done && cpu_done) begin
+                cpu_done <= 1'b0;
+                swap_bit <= ~swap_bit;
+                spi_sram_sel <= 1'b1; // spi_sram_sel tells it when the framebuffers were switched and so
+                                      // now lcd has a newly written buffer to read and so another frame should be sent
+            end
+            else
+                spi_sram_sel <= 1'b0;
         end
-        else
-            spi_sram_sel <= 1'b0;
-        
     end
 
 endmodule

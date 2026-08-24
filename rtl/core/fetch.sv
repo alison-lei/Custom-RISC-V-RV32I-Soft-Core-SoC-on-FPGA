@@ -11,7 +11,13 @@ module fetch (
 
     // when do reset initially, pc is 0, adds by 4 incrementally
     // the first instruction is when pc = 0, so when reset = 1, 
-    initial $readmemh("mem_init/testing.hex", memory);
+    initial begin
+        // would set all initally to 0, but quartus restricts forloop to 5000, isok b/c although warning
+        // default resorts back to 0
+        // for (int i = 0; i < 5120; i++)
+        //     memory[i] = 32'b0;
+        $readmemh("mem_init/testing.hex", memory);
+    end
 
     always_comb begin
         instr = 32'h00000013; // NOP, no operation default ADDI x0, x0, 0
