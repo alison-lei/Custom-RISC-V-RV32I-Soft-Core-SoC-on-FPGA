@@ -52,19 +52,38 @@ module data_ram (
         data_size_reg <= data_size;
         mem_word_reg <= memory[word_addr]; // this is so that you can read from it combinationally afterwards, as it is updated sequentially
 
-
+        // Byte/halfword writes now use STATIC bit ranges, selected via a case
+        // on byte_index, instead of a dynamically-shifted part-select
+        // (memory[word_addr][bit_index_ms -: 8] <= ...). Real block RAM can
+        // only do byte-enable writes at fixed, compile-time-known lane
+        // boundaries - a write whose bit position is computed from a runtime
+        // signal isn't something the hardware can do at all
         if (st_enable && dataram_sel) begin
             case (data_size)
-                BYTE : memory[word_addr][bit_index_ms -: 8] <= st_data[7:0];
-                H_WORD : memory[word_addr][bit_index_ms -: 16] <= st_data[15:0];
                 WORD : memory[word_addr] <= st_data;
-                BYTE_U : memory[word_addr][bit_index_ms -: 8] <= st_data[7:0];
-                H_WORD_U : memory[word_addr][bit_index_ms -: 16] <= st_data[15:0];
+                BYTE, BYTE_U : begin
+                    case (byte_index)
+                        2'b0 : memory[word_addr][7:0] <= st_data[7:0];
+                        2'b1 : memory[word_addr][15:8] <= st_data[7:0];
+                        2'b10 : memory[word_addr][23:16] <= st_data[7:0];
+                        2'b11 : memory[word_addr][31:24] <= st_data[7:0];
+                        default : ;
+                    endcase
+                    memory[word_addr][bit_index_ms -: 8] <= st_data[7:0];
+                end
+                H_WORD, H_WORD_U : begin
+                    case (byte_index)
+                        1'b0 : memory[word_addr][15:0] <= st_data[15:0];
+                        1'b1 : memory[word_addr][31:16] <= st_data[15:0];
+                        default : ;
+                    endcase
+                end
                 default : ;
             endcase
         end
     end
 
+    // can still read with dynamic bit position, just not write
     always_comb begin
         dataram_read_data = 32'b0;
         if (ld_valid_reg) begin // condition upon ld_valid_reg, data_size_reg, bit_index_ms_reg because want conditons

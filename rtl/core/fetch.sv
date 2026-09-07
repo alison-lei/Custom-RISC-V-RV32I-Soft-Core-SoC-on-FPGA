@@ -9,6 +9,8 @@ module fetch (
 );
     // internal block RAM that FPGA initializes. Not on same bus as dataram, harvard architecture
     logic [31:0] memory [0:5119]; // 0x4FFF
+    logic [31:0] addr_valid_reg;
+    logic [31:0] instr_reg;
 
     // when do reset initially, pc is 0, adds by 4 incrementally
     // the first instruction is when pc = 0, so when reset = 1, 
