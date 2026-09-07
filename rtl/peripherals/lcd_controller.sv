@@ -11,7 +11,7 @@
 // have spi_controller send bytes as ILI9341 expects bytes on the wire
 
 module lcd_controller (
-    input logic clk, reset, spi_sram_sel,
+    input logic clk, reset, spi_sram_sel, lcd_ack,
     input logic [19:0] buffer_base_addr, // is 20 bits
     input logic [15:0] sram_data, // value of that specific pixel
     output logic lcd_done, init_done, lcd_dc,
@@ -279,7 +279,6 @@ module lcd_controller (
                     lcd_done <= 1'b0;
                     sram_addr <= buffer_base_addr + counter;
                     state <= (spi_sram_sel) ? FRAME_CONFIG : IDLE;
-                    next_state <= (spi_sram_sel) ? SEND_HIGH_BYTE : FRAME_CONFIG;
                     
                 end
                 FRAME_CONFIG : begin
@@ -341,10 +340,15 @@ module lcd_controller (
                 STOP : begin  
                     start <= 1'b0;                  
                     if (counter == TOTAL_PIXELS - 1) begin
-                        lcd_done <= 1'b1;
                         counter <= 0;
-                        state <= IDLE;
-                        next_state <= FRAME_CONFIG;
+                        if (lcd_ack) begin
+                            lcd_done <= 1'b0;
+                            state <= IDLE;
+                        end
+                        else begin
+                            lcd_done <= 1'b1;
+                            state <= STOP;
+                        end
                     end
                     else begin
                         lcd_done <= 1'b0;

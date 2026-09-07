@@ -16,8 +16,17 @@ module top_processor (
 
     output logic sclk, lcd_cs, lcd_dc, lcd_mosi
 );
+
+    typedef enum logic [1:0] {
+        FETCH = 2'b0,
+        EXEC = 2'b01,
+        LOAD_WAIT = 2'b10
+    } cpu_state_types;
+
+    cpu_state_types cpu_state;
+
     // update_pc
-    logic branch_b, jump_b;
+    logic branch_b, jump_b, pc_enable;
     logic [31:0] branch_addr, jump_addr;    
 
     // bus
@@ -79,14 +88,14 @@ module top_processor (
     // implement Harvard architecture as fetch and peripherals access memory at different timlocations
     // they use separate busses so there is no interference, can read instruction and write data to block RAM at same time
     // synchronous on pos clock edge
-    update_pc pc0 (.clk(clk), .reset(reset), .branch_b(branch_b), .jump_b(jump_b), .mret_enable(mret_enable), .mtvec_enable(mtvec_enable),
+    update_pc pc0 (.clk(clk), .reset(reset), .pc_enable(pc_enable), .branch_b(branch_b), .jump_b(jump_b), .mret_enable(mret_enable), .mtvec_enable(mtvec_enable),
                     .branch_addr(branch_addr), .jump_addr(jump_addr), .mepc(mepc), .mtvec(mtvec), .out_pc(current_pc));
     
     bus b0 (.reset(reset), .addr(mem_addr), .dataram_sel(dataram_sel), .interrupt_sel(interrupt_sel),
             .target_mem_index(target_mem_index));
 
     // can write current_pc as it will never go past the instruction partition in memory/surpass 32'h00000FFF
-    fetch f0 (.addr(current_pc), .instr(instr));
+    fetch f0 (.clk(clk), .addr(current_pc), .instr(instr));
 
     // below havent changed from mem_addr to target_mem_index
     decode d0 (.instr(instr), .ALU_ctrl(ALU_ctrl), .rd_num(rd_num), .rs1_num(rs1_num), .rs2_num(rs2_num), .immediate(immediate), .csr_addr(csr_addr),
@@ -115,7 +124,7 @@ module top_processor (
                                     .interrupt_id(interrupt_id), .mstatus(mstatus), .mie(mie), .interrupt_mem_addr(target_mem_index),
                                     .mtvec_enable(mtvec_enable), .interrupt_pending(interrupt_pending), .interrupt_read_data(interrupt_read_data));
     
-    lcd_controller lcd_contr (.clk(clk), .reset(reset), .spi_sram_sel(spi_sram_sel), .buffer_base_addr(lcd_buffer_base_addr), .sram_data(lcd_rdata),
+    lcd_controller lcd_contr (.clk(clk), .reset(reset), .spi_sram_sel(spi_sram_sel), .lcd_ack(lcd_ack), .buffer_base_addr(lcd_buffer_base_addr), .sram_data(lcd_rdata),
                                 .lcd_done(lcd_done), .init_done(init_done), .lcd_dc(lcd_dc), .sram_addr(lcd_sram_addr), .sclk(sclk), .lcd_cs(lcd_cs), .lcd_mosi(lcd_mosi));
 
                                                                                                     // load the last 16 bits
@@ -130,6 +139,21 @@ module top_processor (
     writeback wb0 (.ld_enable(load_enable), .ex_final_reg_data(execute_rd_data), .mem_stage_rd_data(mem_stage_rd_data),
                     .last_reg_data(last_reg_data));
 
+
+    assign pc_enable = (cpu_state == EXEC && !load_enable) || (cpu_state == LOAD_WAIT);
+
+    always_ff @(posedge clk or posedge reset) begin
+        if (reset)
+            cpu_state <= FETCH;
+        else begin
+            case (cpu_state)
+                FETCH : cpu_state <= EXEC; // in FETCH, put in address and will get data on next clk edge, so need to wait with same pc
+                EXEC : cpu_state <= (load_enable) ? LOAD_WAIT : FETCH;
+                LOAD_WAIT : cpu_state <= FETCH;
+                default : cpu_state <= FETCH;
+            endcase
+        end
+    end
 
     always_comb begin
         csr_read_data = 32'b0;
@@ -192,12 +216,14 @@ module top_processor (
 
             if (lcd_done && cpu_done) begin
                 cpu_done <= 1'b0;
+                lcd_ack <= 1'b1;
                 swap_bit <= ~swap_bit;
                 spi_sram_sel <= 1'b1; // spi_sram_sel tells it when the framebuffers were switched and so
                                       // now lcd has a newly written buffer to read and so another frame should be sent
             end
             else
                 spi_sram_sel <= 1'b0;
+                lcd_ack <= 1'b0;
         end
     end
 

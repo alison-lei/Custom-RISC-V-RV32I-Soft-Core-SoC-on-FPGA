@@ -3,7 +3,6 @@ sim/vsim.wlf
 operation_spec_testing.hex
 temp_wave.do
 
-sim/work/
 sim/work_display/
 db
 output_files

@@ -29,33 +29,30 @@ module data_ram (
     assign word_addr = mem_addr >> 2;
     assign byte_index = mem_addr[1:0];
 
-    // block RAM physically requries loads to be done sequentially, not combinationally,
-    // need clk edge between giving address and getting data stored there back
-    // cannot do the instant read of combinational
     always_comb begin
-        dataram_read_data = 32'b0;
         bit_index_ms = 5'd7;
-
         if (data_size == H_WORD || data_size == H_WORD_U)
             bit_index_ms = byte_index * 8 + 15;
         else
             bit_index_ms = byte_index * 8 + 7;
-
-        if (ld_enable && dataram_sel) begin // can do reading in combination block
-            case (data_size)
-                // -: is WIDTH, must be constant, # of bits inclusive
-                BYTE : dataram_read_data = {{24{memory[word_addr][bit_index_ms]}}, {memory[word_addr][bit_index_ms -: 8]}};
-                H_WORD : dataram_read_data = {{16{memory[word_addr][bit_index_ms]}}, {memory[word_addr][bit_index_ms -: 16]}};
-                WORD : dataram_read_data = memory[word_addr];
-                BYTE_U : dataram_read_data = {{24'b0}, {memory[word_addr][bit_index_ms -: 8]}};
-                H_WORD_U : dataram_read_data = {{16'b0}, {memory[word_addr][bit_index_ms -: 16]}};
-                default: ;
-            endcase
-        end
     end
 
-    // can only write once in one cycle, is state change that needs to be clocked
+    // block RAM physically requries loads to be done sequentially, not combinationally,
+    // need clk edge between giving address and getting data stored there back
+    // cannot do the instant read/combinational of block RAM, that's why "get/freeze" the data
+    // for this clk cycle and can always_comb and slice this data however
+    logic [31:0] mem_word_reg;
+    logic ld_valid_reg;
+    logic [4:0] bit_index_ms_reg;
+    st_ld_size data_size_reg;
+
     always_ff @(posedge clk) begin
+        bit_index_ms_reg <= bit_index_ms;
+        ld_valid_reg <= ld_enable && dataram_sel;
+        data_size_reg <= data_size;
+        mem_word_reg <= memory[word_addr]; // this is so that you can read from it combinationally afterwards, as it is updated sequentially
+
+
         if (st_enable && dataram_sel) begin
             case (data_size)
                 BYTE : memory[word_addr][bit_index_ms -: 8] <= st_data[7:0];
@@ -68,5 +65,20 @@ module data_ram (
         end
     end
 
+    always_comb begin
+        dataram_read_data = 32'b0;
+        if (ld_valid_reg) begin // condition upon ld_valid_reg, data_size_reg, bit_index_ms_reg because want conditons
+                                // to be the same as when copied value of memory at that word address in always_ff
+            case (data_size_reg)
+                // -: is WIDTH, must be constant, # of bits inclusive
+                BYTE : dataram_read_data = {{24{mem_word_reg[bit_index_ms_reg]}}, {mem_word_reg[bit_index_ms_reg -: 8]}};
+                H_WORD : dataram_read_data = {{16{mem_word_reg[bit_index_ms_reg]}}, {mem_word_reg[bit_index_ms_reg -: 16]}};
+                WORD : dataram_read_data = mem_word_reg;
+                BYTE_U : dataram_read_data = {{24'b0}, {mem_word_reg[bit_index_ms_reg -: 8]}};
+                H_WORD_U : dataram_read_data = {{16'b0}, {mem_word_reg[bit_index_ms_reg -: 16]}};
+                default: ;
+            endcase
+        end
+    end
 
 endmodule

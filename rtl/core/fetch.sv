@@ -3,6 +3,7 @@
 // byte-addresable memory
 
 module fetch (
+    input logic clk,
     input logic [31:0] addr,
     output logic [31:0] instr
 );
@@ -19,10 +20,15 @@ module fetch (
         $readmemh("mem_init/testing.hex", memory);
     end
 
+    always_ff @(posedge clk) begin
+        addr_valid_reg <= (addr <= 32'h00004FFF);
+        instr_reg <= memory[addr >> 2];
+    end
+
     always_comb begin
         instr = 32'h00000013; // NOP, no operation default ADDI x0, x0, 0
-        if (addr <= 32'h00004FFF)
-            instr = memory[addr >> 2];
+        if (addr_valid_reg)
+            instr = instr_reg;
     end
 
 endmodule
