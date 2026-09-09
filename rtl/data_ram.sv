@@ -46,6 +46,37 @@ module data_ram (
     logic [4:0] bit_index_ms_reg;
     st_ld_size data_size_reg;
 
+    logic [31:0] aligned_wdata;
+    logic [3:0] byte_enable;
+
+    always_comb begin
+        aligned_wdata = 32'b0;
+        byte_enable = 4'b0;
+
+        if (st_enable && dataram_sel) begin
+            case (data_size)
+                WORD : aligned_wdata = st_data;
+                BYTE, BYTE_U : begin
+                    case (byte_index)
+                        2'b0 : begin aligned_wdata = {24'b0, st_data[7:0]}; byte_enable = 4'b0001; end
+                        2'b1 : begin aligned_wdata = {16'b0, st_data[7:0], 8'b0}; byte_enable = 4'b0010; end
+                        2'b10 : begin aligned_wdata = {8'b0, st_data[7:0], 16'b0}; byte_enable = 4'b0100; end
+                        2'b11 : begin aligned_wdata = {st_data[7:0], 24'b0}; byte_enable = 4'b1000; end
+                        default : ;
+                    endcase
+                end
+                H_WORD, H_WORD_U : begin
+                    case (byte_index)
+                        2'b0 : begin aligned_wdata = {16'b0, st_data[15:0]}; byte_enable = 4'b0011; end
+                        2'b1 : begin aligned_wdata = {st_data[15:0], 16'b0}; byte_enable = 4'b1100; end
+                        default : ;
+                    endcase
+                end
+                default : ;
+            endcase
+        end    
+    end
+
     always_ff @(posedge clk) begin
         bit_index_ms_reg <= bit_index_ms;
         ld_valid_reg <= ld_enable && dataram_sel;
@@ -58,29 +89,36 @@ module data_ram (
         // only do byte-enable writes at fixed, compile-time-known lane
         // boundaries - a write whose bit position is computed from a runtime
         // signal isn't something the hardware can do at all
-        if (st_enable && dataram_sel) begin
-            case (data_size)
-                WORD : memory[word_addr] <= st_data;
-                BYTE, BYTE_U : begin
-                    case (byte_index)
-                        2'b0 : memory[word_addr][7:0] <= st_data[7:0];
-                        2'b1 : memory[word_addr][15:8] <= st_data[7:0];
-                        2'b10 : memory[word_addr][23:16] <= st_data[7:0];
-                        2'b11 : memory[word_addr][31:24] <= st_data[7:0];
-                        default : ;
-                    endcase
-                    memory[word_addr][bit_index_ms -: 8] <= st_data[7:0];
-                end
-                H_WORD, H_WORD_U : begin
-                    case (byte_index)
-                        1'b0 : memory[word_addr][15:0] <= st_data[15:0];
-                        1'b1 : memory[word_addr][31:16] <= st_data[15:0];
-                        default : ;
-                    endcase
-                end
-                default : ;
-            endcase
-        end
+
+        // Quartus doens't like it when you have different write-widths (8, 16, 32) for mutually exclusive branches of a case
+        if (byte_enable[0]) memory[word_addr][7:0] <= aligned_wdata[7:0];
+        if (byte_enable[1]) memory[word_addr][15:8] <= aligned_wdata[15:8];
+        if (byte_enable[2]) memory[word_addr][23:16] <= aligned_wdata[23:16];
+        if (byte_enable[3]) memory[word_addr][31:24] <= aligned_wdata[31:24];
+
+        // for this method, each differently sized case needs its own write path, so uses more LE
+        // if (st_enable && dataram_sel) begin
+        //     case (data_size)
+        //         WORD : memory[word_addr] <= st_data;
+        //         BYTE, BYTE_U : begin
+        //             case (byte_index)
+        //                 2'b0 : memory[word_addr][7:0] <= st_data[7:0];
+        //                 2'b1 : memory[word_addr][15:8] <= st_data[7:0];
+        //                 2'b10 : memory[word_addr][23:16] <= st_data[7:0];
+        //                 2'b11 : memory[word_addr][31:24] <= st_data[7:0];
+        //                 default : ;
+        //             endcase
+        //         end
+        //         H_WORD, H_WORD_U : begin
+        //             case (byte_index)
+        //                 1'b0 : memory[word_addr][15:0] <= st_data[15:0];
+        //                 1'b1 : memory[word_addr][31:16] <= st_data[15:0];
+        //                 default : ;
+        //             endcase
+        //         end
+        //         default : ;
+        //     endcase
+        // end
     end
 
     // can still read with dynamic bit position, just not write

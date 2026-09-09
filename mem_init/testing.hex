@@ -1,14 +1,12 @@
-00100093
-00200113
-002081B3
-40118233
-000002B7
-34028293
-00502023
-00002303
-00208863
-00209863
-00000000
-00000000
-00000000
-0040006F
+000100B7 // lui  x1, 0x10          x1 = 0x00010000
+80008093 // addi x1, x1, -2048     x1 = 0x0000F800  (red, RGB565)
+00006137 // lui  x2, 0x6           x2 = 0x00006000  (framebuffer start, swap_bit=0)
+0002D1B7 // lui  x3, 0x2D
+10018193 // addi x3, x3, 0x100     x3 = 0x0002D100  (framebuffer end, exclusive)
+00112023 // sw   x1, 0(x2)         loop: write one red pixel
+00210113 // addi x2, x2, 2         advance by one pixel (16-bit stride)
+FE314CE3 // blt  x2, x3, loop      (offset -8)
+00001237 // lui  x4, 0x1
+20020213 // addi x4, x4, 0x200     x4 = 0x00001200
+00022023 // sw   x0, 0(x4)         signal cpu_done -> triggers frame swap/send
+0000006F // halt: jal x0, 0        (infinite self-loop)

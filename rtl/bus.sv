@@ -11,7 +11,7 @@ module bus (
     always_comb begin
         dataram_sel = 1'b0;
         interrupt_sel = 1'b0;
-        target_mem_index = 32'b0;
+        target_mem_index = addr;
 
         if (!reset) begin
             if (addr >= 32'h00005000 && addr <= 32'h00005EFF) begin
