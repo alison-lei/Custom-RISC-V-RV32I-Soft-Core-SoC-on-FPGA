@@ -23,7 +23,7 @@ module lcd_controller (
     // so that is 153600 bytes of data
     // each spi send is programmed to be 16 bits or 2 bytes
 
-    localparam int CYCLES_PER_MS = 50000; // 50,000 cycles per ms
+    localparam int CYCLES_PER_MS = 40000; // 50,000 cycles per ms
     localparam int SYSTEM_CYCLES_PER_SCLK = 10; 
     localparam int TOTAL_PIXELS = 76800;
     localparam int TOTAL_INIT_COMMANDS = 18;

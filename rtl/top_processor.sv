@@ -6,7 +6,7 @@
 
 
 module top_processor (
-    input logic clk,
+    input logic CLOCK50,
     input logic [3:0] KEY, // for buttons
     output logic [31:0] last_reg_data,
 
@@ -16,7 +16,12 @@ module top_processor (
 
     output logic sclk, lcd_cs, lcd_dc, lcd_mosi
 );
-    assign reset = ~KEY[2];
+    logic clk;
+    logic locked;
+    sys_pll sys_pll_clk (.areset(areset), .inclk0(CLOCK50), .c0(clk), .locked(locked));
+
+    wire areset = ~KEY[2];
+    wire reset = ~KEY[2] | ~locked;
 
     typedef enum logic [1:0] {
         FETCH = 2'b0,
