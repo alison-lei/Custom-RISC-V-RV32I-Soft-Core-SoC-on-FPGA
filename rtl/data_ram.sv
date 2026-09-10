@@ -19,13 +19,15 @@ module data_ram (
     st_ld_size data_size;
     assign data_size = st_ld_size'(size);
 
-    // this memory is word granularity
-    logic [31:0] memory [0:959]; // 960 memory blocks each 32 bits
+    // memory is word granularity
+    // 1024 memory block of 32 bits allocated but only 960 used
+    data_ram_ip data_ram_ip (.address(word_addr), .byteena(byte_enable), .clock(clk), .data(aligned_wdata), .wren(byte_b), .q(mem_word_reg));
 
     logic [31:0] word_addr;
     logic [1:0] byte_index;
     logic [4:0] bit_index_ms;
 
+    // this will be truncated to 10 bits because only 1024 word addresses
     assign word_addr = mem_addr >> 2;
     assign byte_index = mem_addr[1:0];
 
@@ -48,6 +50,7 @@ module data_ram (
 
     logic [31:0] aligned_wdata;
     logic [3:0] byte_enable;
+    wire byte_b = |byte_enable;
 
     always_comb begin
         aligned_wdata = 32'b0;
@@ -81,7 +84,7 @@ module data_ram (
         bit_index_ms_reg <= bit_index_ms;
         ld_valid_reg <= ld_enable && dataram_sel;
         data_size_reg <= data_size;
-        mem_word_reg <= memory[word_addr]; // this is so that you can read from it combinationally afterwards, as it is updated sequentially
+        // mem_word_reg is so that you can read from it combinationally afterwards, as it is updated sequentially
 
         // Byte/halfword writes now use STATIC bit ranges, selected via a case
         // on byte_index, instead of a dynamically-shifted part-select
@@ -91,10 +94,11 @@ module data_ram (
         // signal isn't something the hardware can do at all
 
         // Quartus doens't like it when you have different write-widths (8, 16, 32) for mutually exclusive branches of a case
-        if (byte_enable[0]) memory[word_addr][7:0] <= aligned_wdata[7:0];
-        if (byte_enable[1]) memory[word_addr][15:8] <= aligned_wdata[15:8];
-        if (byte_enable[2]) memory[word_addr][23:16] <= aligned_wdata[23:16];
-        if (byte_enable[3]) memory[word_addr][31:24] <= aligned_wdata[31:24];
+        // The following is essentially what is implemented in M9K when give it byteena
+        // if (byte_enable[0]) memory[word_addr][7:0] <= aligned_wdata[7:0];
+        // if (byte_enable[1]) memory[word_addr][15:8] <= aligned_wdata[15:8];
+        // if (byte_enable[2]) memory[word_addr][23:16] <= aligned_wdata[23:16];
+        // if (byte_enable[3]) memory[word_addr][31:24] <= aligned_wdata[31:24];
 
         // for this method, each differently sized case needs its own write path, so uses more LE
         // if (st_enable && dataram_sel) begin
