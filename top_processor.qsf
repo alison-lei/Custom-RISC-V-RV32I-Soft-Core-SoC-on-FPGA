@@ -44,6 +44,11 @@ set_global_assignment -name PROJECT_CREATION_TIME_DATE "21:09:29  AUGUST 22, 202
 set_global_assignment -name LAST_QUARTUS_VERSION "18.0.0 Lite Edition"
 set_global_assignment -name VERILOG_FILE rtl/data_ram_ip.v
 set_global_assignment -name VERILOG_FILE rtl/sys_pll.v
+set_location_assignment PIN_E21 -to LEDG0
+set_location_assignment PIN_E22 -to LEDG1
+set_instance_assignment -name IO_STANDARD "2.5 V" -to LEDG0
+set_instance_assignment -name IO_STANDARD "2.5 V" -to LEDG1
+
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/peripherals/spi_controller.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/peripherals/lcd_controller.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/peripherals/interrupt_handler.sv

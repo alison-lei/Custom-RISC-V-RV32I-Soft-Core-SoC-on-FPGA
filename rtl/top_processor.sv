@@ -4,6 +4,10 @@
 // figure out the swap bit, cpu_done register, also have lcd_done from lcd_controller
 // configure the memory sizes of instructions, dataram, interrupts, and sram
 
+// load .sof onto FPGA
+// $env:PATH += ";C:\intelFPGA_lite\18.0\quartus\bin64"
+// cd C:\path\to\your\project
+// quartus_pgm -c USB-Blaster -m JTAG -o "p;output_files\top_processor.sof"
 
 module top_processor (
     input logic CLOCK50,
@@ -14,7 +18,8 @@ module top_processor (
     inout wire [15:0] SRAM_DQ,
     output logic SRAM_UB_N, SRAM_LB_N, SRAM_CE_N, SRAM_OE_N, SRAM_WE_N,
 
-    output logic sclk, lcd_cs, lcd_dc, lcd_mosi
+    output logic sclk, lcd_cs, lcd_dc, lcd_mosi,
+    output logic LEDG0, LEDG1
 );
     logic clk;
     logic locked;
@@ -22,6 +27,10 @@ module top_processor (
 
     wire areset = ~KEY[2];
     wire reset = ~KEY[2] | ~locked;
+
+    assign LEDG0 = locked;        // lit when PLL has locked
+    assign LEDG1 = reset;         // lit while held in reset (should go LOW after lock+button release)
+
 
     typedef enum logic [1:0] {
         FETCH = 2'b0,
