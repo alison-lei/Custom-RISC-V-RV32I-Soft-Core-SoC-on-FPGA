@@ -278,7 +278,8 @@ module lcd_controller (
                     start <= 1'b0;
                     lcd_done <= 1'b0;
                     sram_addr <= buffer_base_addr + counter;
-                    state <= (spi_sram_sel) ? FRAME_CONFIG : IDLE;
+                    // state <= (spi_sram_sel) ? FRAME_CONFIG : IDLE;
+                    state <= FRAME_CONFIG;
                     
                 end
                 FRAME_CONFIG : begin
@@ -308,8 +309,8 @@ module lcd_controller (
                     end
                 end
                 SEND_HIGH_BYTE : begin
-                    pixel_data <= sram_data;
-                    byte_data <= sram_data >> 8; // must be sram_data and not pixel_data as before
+                    pixel_data <= 16'hF81F;
+                    byte_data <= 8'hF8; // must be sram_data and not pixel_data as before
                                                 // pixel_data is not initialized so it doesn't get new
                                                 // value of pixel_data which is sram_data, it gets xxxxxx
                     state <= WAIT;

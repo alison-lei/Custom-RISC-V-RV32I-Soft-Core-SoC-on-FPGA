@@ -46,8 +46,14 @@ set_global_assignment -name VERILOG_FILE rtl/data_ram_ip.v
 set_global_assignment -name VERILOG_FILE rtl/sys_pll.v
 set_location_assignment PIN_E21 -to LEDG0
 set_location_assignment PIN_E22 -to LEDG1
+set_location_assignment PIN_E25 -to LEDG2
+set_location_assignment PIN_E24 -to LEDG3
+set_location_assignment PIN_H21 -to LEDG4
 set_instance_assignment -name IO_STANDARD "2.5 V" -to LEDG0
 set_instance_assignment -name IO_STANDARD "2.5 V" -to LEDG1
+set_instance_assignment -name IO_STANDARD "2.5 V" -to LEDG2
+set_instance_assignment -name IO_STANDARD "2.5 V" -to LEDG3
+set_instance_assignment -name IO_STANDARD "2.5 V" -to LEDG4
 
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/peripherals/spi_controller.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/peripherals/lcd_controller.sv
