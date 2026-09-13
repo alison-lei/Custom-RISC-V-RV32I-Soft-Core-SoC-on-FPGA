@@ -19,14 +19,28 @@ module top_processor (
     output logic SRAM_UB_N, SRAM_LB_N, SRAM_CE_N, SRAM_OE_N, SRAM_WE_N,
 
     output logic sclk, lcd_cs, lcd_dc, lcd_mosi,
-    output logic LEDG0, LEDG1
+    output logic LEDG0, LEDG1, LEDG2, LEDG3, LEDG4, LEDG5
+
+    // output logic [31:0] mem_addr, current_pc, target_mem_index, 
+    // output logic cpu_done, store_enable, init_lcd_read, spi_sram_sel, swap_bit, lcd_ack, cpu_we, lcd_done, init_done
 );
     logic clk;
     logic locked;
     sys_pll sys_pll_clk (.areset(areset), .inclk0(CLOCK50), .c0(clk), .locked(locked));
 
     wire areset = ~KEY[2];
-    wire reset = ~KEY[2] | ~locked;
+    wire async_reset = ~KEY[2] | ~locked;
+
+    logic [1:0] reset_sync;
+
+    always_ff @(posedge clk or posedge async_reset) begin
+        if (async_reset)
+            reset_sync <= 2'b11;
+        else
+            reset_sync <= {reset_sync[0], 1'b0}; 
+    end
+
+    wire reset = reset_sync[1];
 
     assign LEDG0 = locked;        // lit when PLL has locked
     assign LEDG1 = reset;         // lit while held in reset (should go LOW after lock+button release)
@@ -56,7 +70,8 @@ module top_processor (
     logic [3:0] ALU_ctrl;
     logic [4:0] rd_num, rs1_num, rs2_num;
     logic [31:0] immediate;
-    logic jump_enable, branch_enable, load_enable, store_enable, rd_enable, ALUSrc, use_pc;
+    logic store_enable;
+    logic jump_enable, branch_enable, load_enable, rd_enable, ALUSrc, use_pc;
     logic [2:0] size, branch_type;
 
     // register_file
@@ -86,19 +101,21 @@ module top_processor (
 
     // lcd_controller and sram_controller
     logic cpu_we;
-    logic cpu_done, lcd_done, init_done;
+    logic cpu_done, lcd_done, lcd_ack, init_done, init_lcd_read;
     logic swap_bit;
     logic spi_sram_sel;
     logic [15:0] lcd_rdata;
     logic [19:0] lcd_sram_addr, lcd_buffer_base_addr;
     
 
-
     // memory_stage
     logic [31:0] mem_stage_rd_data;
 
     // writeback is technically just 1 assign statement to determine between execute value or ram
 
+    initial begin
+        init_lcd_read = 1'b1;
+    end
 
     // implement Harvard architecture as fetch and peripherals access memory at different timlocations
     // they use separate busses so there is no interference, can read instruction and write data to block RAM at same time
@@ -184,7 +201,9 @@ module top_processor (
         endcase
 
         // ensures no latency as lcd_controller needs correct base addr when spi_sram_sel is high
-        lcd_buffer_base_addr = (swap_bit) ? 20'h06000 : 20'h2D100;
+        lcd_buffer_base_addr = (swap_bit) ? 20'h00000 : 20'h27100;
+        // buffer A offset = 0x6000 - 0x6000 = 0
+        // buffer B offset = 0x2D100 - 0x6000 = 0x27100
 
         if (store_enable) begin
             if (swap_bit) begin
@@ -207,7 +226,8 @@ module top_processor (
             // swap_bit = 0 means cpu write in A and lcd read in B
             // swap_bit = 1 means cpu write in B and lcd read in A
             swap_bit <= 1'b0;
-            cpu_done <= 1'b1;
+            cpu_done <= 1'b0;
+            init_lcd_read <= 1'b1;
         end
         else begin
             if (mtvec_enable) begin
@@ -226,21 +246,28 @@ module top_processor (
             end
 
             // cpu writes to address 0x1200 to signal done writing to a framebuffer
-            if (mem_addr == 32'h1200 && store_enable)
+            if (target_mem_index == 32'h1200 && store_enable)
                 cpu_done <= 1'b1;
 
-            if (lcd_done && cpu_done) begin
+            if ((lcd_done && cpu_done || init_lcd_read && cpu_done) && init_done) begin
                 cpu_done <= 1'b0;
                 lcd_ack <= 1'b1;
                 swap_bit <= ~swap_bit;
                 spi_sram_sel <= 1'b1; // spi_sram_sel tells it when the framebuffers were switched and so
                                       // now lcd has a newly written buffer to read and so another frame should be sent
+                init_lcd_read <= 1'b0;
             end
-            else
+            else begin
                 spi_sram_sel <= 1'b0;
                 lcd_ack <= 1'b0;
+            end
         end
     end
+
+    assign LEDG2 = cpu_done;
+    assign LEDG3 = init_lcd_read;
+    assign LEDG4 = init_done;
+    assign LEDG5 = lcd_done;
 
 endmodule
 
