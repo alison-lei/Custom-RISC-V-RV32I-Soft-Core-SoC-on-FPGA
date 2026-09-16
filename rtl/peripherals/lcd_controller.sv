@@ -12,10 +12,10 @@
 
 module lcd_controller (
     input logic clk, reset, spi_sram_sel, lcd_ack,
-    input logic [19:0] buffer_base_addr, // is 20 bits
+    input logic [17:0] buffer_base_addr, // is 18 bits
     input logic [15:0] sram_data, // value of that specific pixel
     output logic lcd_done, init_done, lcd_dc,
-    output logic [19:0] sram_addr, // address of specific pixel
+    output logic [17:0] sram_addr, // address of specific pixel
     output logic sclk, lcd_cs, lcd_mosi
 );
     // math:
@@ -26,7 +26,7 @@ module lcd_controller (
     localparam int CYCLES_PER_MS = 40000; // 50,000 cycles per ms
     localparam int SYSTEM_CYCLES_PER_SCLK = 10; 
     localparam int TOTAL_PIXELS = 76800;
-    localparam int TOTAL_INIT_COMMANDS = 18;
+    localparam int TOTAL_INIT_COMMANDS = 20;
     localparam int TOTAL_FRAME_COMMANDS = 11;
     // localparam int TOTAL_PIXELS = 10;
     // localparam int TOTAL_INIT_COMMANDS = 3;
@@ -60,7 +60,7 @@ module lcd_controller (
     } init_frame_config;
 
     // initialize ROM, array of structs
-    init_com_data init_rom [0:17];
+    init_com_data init_rom [0:19];
     init_frame_config init_frame [0:10];
 
     initial begin
@@ -141,10 +141,19 @@ module lcd_controller (
         init_rom[16].delay_ms = 8'd120;
         // init_rom[16].delay_ms = 8'd0;
 
-        // display on
+        // memory access control — clears BGR, sets RGB order
         init_rom[17].is_command = 1'b1;
-        init_rom[17].byte_val = 8'h29;
+        init_rom[17].byte_val = 8'h36;
         init_rom[17].delay_ms = 8'b0;
+
+        init_rom[18].is_command = 1'b0;
+        init_rom[18].byte_val = 8'h08;   // bit3=0 -> RGB; change to 8'h08 for BGR
+        init_rom[18].delay_ms = 8'b0;
+
+        // display on
+        init_rom[19].is_command = 1'b1;
+        init_rom[19].byte_val = 8'h29;
+        init_rom[19].delay_ms = 8'b0;
 
         // initialize the frame configuration
         //set column length
@@ -192,7 +201,6 @@ module lcd_controller (
     int start_counter = 0;
 
     logic spi_done;
-    logic [15:0] pixel_data;
     logic [7:0] byte_data = 8'b0;
 
     state_type state = INITIAL;
@@ -279,7 +287,6 @@ module lcd_controller (
                     lcd_done <= 1'b0;
                     sram_addr <= buffer_base_addr + counter;
                     state <= (spi_sram_sel) ? FRAME_CONFIG : IDLE;
-                    // state <= FRAME_CONFIG;
                     
                 end
                 FRAME_CONFIG : begin
@@ -309,14 +316,11 @@ module lcd_controller (
                     end
                 end
                 SEND_HIGH_BYTE : begin
-                    pixel_data <= sram_data;
-                    byte_data <= sram_data >> 8 ; // must be sram_data and not pixel_data as before
-                                                // pixel_data is not initialized so it doesn't get new
-                                                // value of pixel_data which is sram_data, it gets xxxxxx
+                    byte_data <= sram_data[15:8];
                     state <= WAIT;
                     next_state <= SEND_LOW_BYTE;
                     start <= 1'b1;
-                    lcd_dc <= 1'b1; // send pixel data byte
+                    lcd_dc <= 1'b1;
                     lcd_done <= 1'b0;
                 end
                 WAIT : begin
@@ -332,7 +336,7 @@ module lcd_controller (
                     end
                 end
                 SEND_LOW_BYTE : begin
-                    byte_data <= pixel_data & 8'hFF;
+                    byte_data <= sram_data[7:0]; // because I change sram_addr only at STOP, then data guaranteed to be stable for this address
                     state <= WAIT;
                     next_state <= STOP;
                     start <= 1'b1;
@@ -341,10 +345,11 @@ module lcd_controller (
                 STOP : begin  
                     start <= 1'b0;                  
                     if (counter == TOTAL_PIXELS - 1) begin
-                        counter <= 0;
                         if (lcd_ack) begin
+                            counter <= 0;
+                            sram_addr <= buffer_base_addr;
                             lcd_done <= 1'b0;
-                            state <= IDLE;
+                            state <= (spi_sram_sel) ? FRAME_CONFIG : IDLE;
                         end
                         else begin
                             lcd_done <= 1'b1;
@@ -356,8 +361,10 @@ module lcd_controller (
                         counter <= counter + 1;
                         state <= SEND_HIGH_BYTE;
                         sram_addr <= buffer_base_addr + counter + 1; // remember, counter in this line is the old counter value
-                                                                     // so manually add 1 so sram_data can be calculated correctly
-                                                                     // on next posedge
+                                                                     // so manually add 1. But RAM is synchronous so need 1 clk
+                                                                     // edge in between, can send straight to SEND_HIGH_BYTE as
+                                                                     // data is only sent in WAIT, SEND_HIGH_BYTE stage has correct
+                                                                     // address but not yet data, WAIT has correct data
                     end
                 end
                 default : ;

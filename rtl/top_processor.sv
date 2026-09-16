@@ -14,9 +14,9 @@ module top_processor (
     input logic [3:0] KEY, // for buttons
     output logic [31:0] last_reg_data,
 
-    output logic [19:0] SRAM_ADDR,
-    inout wire [15:0] SRAM_DQ,
-    output logic SRAM_UB_N, SRAM_LB_N, SRAM_CE_N, SRAM_OE_N, SRAM_WE_N,
+    // output logic [19:0] SRAM_ADDR,
+    // inout wire [15:0] SRAM_DQ,
+    // output logic SRAM_UB_N, SRAM_LB_N, SRAM_CE_N, SRAM_OE_N, SRAM_WE_N,
 
     output logic sclk, lcd_cs, lcd_dc, lcd_mosi,
     output logic LEDG0, LEDG1, LEDG2, LEDG3, LEDG4, LEDG5
@@ -49,7 +49,7 @@ module top_processor (
     typedef enum logic [1:0] {
         FETCH = 2'b0,
         EXEC = 2'b01,
-        LOAD_WAIT = 2'b10
+        MEM_WAIT = 2'b10
     } cpu_state_types;
 
     cpu_state_types cpu_state;
@@ -105,7 +105,7 @@ module top_processor (
     logic swap_bit;
     logic spi_sram_sel;
     logic [15:0] lcd_rdata;
-    logic [19:0] lcd_sram_addr, lcd_buffer_base_addr;
+    logic [17:0] lcd_sram_addr, lcd_buffer_base_addr;
     
 
     // memory_stage
@@ -159,10 +159,11 @@ module top_processor (
     lcd_controller lcd_contr (.clk(clk), .reset(reset), .spi_sram_sel(spi_sram_sel), .lcd_ack(lcd_ack), .buffer_base_addr(lcd_buffer_base_addr), .sram_data(lcd_rdata),
                                 .lcd_done(lcd_done), .init_done(init_done), .lcd_dc(lcd_dc), .sram_addr(lcd_sram_addr), .sclk(sclk), .lcd_cs(lcd_cs), .lcd_mosi(lcd_mosi));
 
-                                                                                                    // load the last 16 bits
-    sram_controller sram_contr (.cpu_we(cpu_we), .cpu_sram_addr(target_mem_index), .lcd_sram_addr(lcd_sram_addr), .cpu_wdata(rs2_data[0 +: 16]), .lcd_rdata(lcd_rdata),
-                                .SRAM_ADDR(SRAM_ADDR), .SRAM_DQ(SRAM_DQ), .SRAM_UB_N(SRAM_UB_N), .SRAM_LB_N(SRAM_LB_N), .SRAM_CE_N(SRAM_CE_N),
-                                .SRAM_OE_N(SRAM_OE_N), .SRAM_WE_N(SRAM_WE_N));
+    framebuffer_ram_ip frmbffr_ram_ip (.clock(clk), .data(rs2_data[0 +: 16]), .rdaddress(lcd_sram_addr), .wraddress(target_mem_index[1 +: 18]), .wren(cpu_we), .q(lcd_rdata));                                                                           // load the last 16 bits
+    
+    // sram_controller sram_contr (.cpu_we(cpu_we), .cpu_sram_addr(target_mem_index), .lcd_sram_addr(lcd_sram_addr), .cpu_wdata(rs2_data[0 +: 16]), .lcd_rdata(lcd_rdata),
+    //                             .SRAM_ADDR(SRAM_ADDR), .SRAM_DQ(SRAM_DQ), .SRAM_UB_N(SRAM_UB_N), .SRAM_LB_N(SRAM_LB_N), .SRAM_CE_N(SRAM_CE_N),
+    //                             .SRAM_OE_N(SRAM_OE_N), .SRAM_WE_N(SRAM_WE_N));
 
     // each peripheral outputs its own read_data wire and memory_stage picks the correct one
     memory_stage memstge0 (.ld_enable(load_enable), .dataram_sel(dataram_sel), .interrupt_sel(interrupt_sel), .dataram_read_data(dataram_read_data),
@@ -172,7 +173,7 @@ module top_processor (
                     .last_reg_data(last_reg_data));
 
 
-    assign pc_enable = (cpu_state == EXEC && !load_enable) || (cpu_state == LOAD_WAIT);
+    assign pc_enable = (cpu_state == EXEC && !load_enable && !store_enable) || (cpu_state == MEM_WAIT);
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset)
@@ -180,8 +181,8 @@ module top_processor (
         else begin
             case (cpu_state)
                 FETCH : cpu_state <= EXEC; // in FETCH, put in address and will get data on next clk edge, so need to wait with same pc
-                EXEC : cpu_state <= (load_enable) ? LOAD_WAIT : FETCH;
-                LOAD_WAIT : cpu_state <= FETCH;
+                EXEC : cpu_state <= (load_enable || store_enable) ? MEM_WAIT : FETCH; // SOLUTION!
+                MEM_WAIT : cpu_state <= FETCH;
                 default : cpu_state <= FETCH;
             endcase
         end
@@ -200,17 +201,18 @@ module top_processor (
             default : ;
         endcase
 
+        // systemverilog is unsigned logic variables by default
         // ensures no latency as lcd_controller needs correct base addr when spi_sram_sel is high
-        lcd_buffer_base_addr = (swap_bit) ? 20'h00000 : 20'h27100;
+        lcd_buffer_base_addr = (swap_bit) ? 18'd0 : 18'd76800;
         // buffer A offset = 0x6000 - 0x6000 = 0
         // buffer B offset = 0x2D100 - 0x6000 = 0x27100
 
         if (store_enable) begin
             if (swap_bit) begin
-                if (mem_addr >= 32'h0002D100 && mem_addr < 32'h0009F200)
+                if (mem_addr >= 32'h0002B800 && mem_addr < 32'h00051000)
                     cpu_we = 1'b1;
             end else begin
-                if (mem_addr >= 32'h00006000 && mem_addr < 32'h0002D100)
+                if (mem_addr >= 32'h00006000 && mem_addr < 32'h0002B800)
                     cpu_we = 1'b1;
             end
         end

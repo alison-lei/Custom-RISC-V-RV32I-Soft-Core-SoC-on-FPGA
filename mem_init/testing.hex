@@ -1,11 +1,18 @@
-0F800093 // addi x1, x0, 0xF8      x1 = 0x000000F8  (byte-swapped red, testing endianness theory)
-00006137 // lui  x2, 0x6           x2 = 0x00006000  (framebuffer start, swap_bit=0)
-0002C1B7 // lui  x3, 0x2C          x3 = 0x0002C000
-80018193 // addi x3, x3, -2048     x3 = 0x0002B800  (framebuffer end, exclusive: 6000 + 76800*2)
-00111023 // sh   x1, 0(x2)         loop: write one red pixel (halfword)
-00210113 // addi x2, x2, 2         advance by one pixel (16-bit stride)
-FE314CE3 // blt  x2, x3, loop      (offset -8, still 2 instructions back to the sh)
-00001237 // lui  x4, 0x1
-20020213 // addi x4, x4, 0x200     x4 = 0x00001200
-00022023 // sw   x0, 0(x4)         signal cpu_done -> triggers frame swap/send
-0000006F // halt: jal x0, 0        (infinite self-loop)
+80000093  // addi x1, x0, -2048     x1 = 0xFFFFF800 -> sh writes 0xF800 (red)
+00001237  // lui  x4, 0x1
+20020213  // addi x4, x4, 0x200     x4 = 0x1200  (cpu_done trigger)
+0002C2B7  // lui  x5, 0x2C
+80028293  // addi x5, x5, -2048     x5 = 0x2B800  (bufA end)
+000513B7  // lui  x7, 0x51
+00038393  // addi x7, x7, 0         x7 = 0x51000  (bufB end)
+00006137  // lui  x2, 0x6           x2 = 0x6000   (bufA start) [loopA target]
+00111023  // sh   x1, 0(x2)
+00210113  // addi x2, x2, 2
+FE514CE3  // blt  x2, x5, loopA     -8
+0002C337  // lui  x6, 0x2C
+80030313  // addi x6, x6, -2048     x6 = 0x2B800  (bufB start)
+00131023  // sh   x1, 0(x6)         [loopB target]
+00230313  // addi x6, x6, 2
+FE734CE3  // blt  x6, x7, loopB     -8
+00022023  // sw   x0, 0(x4)         signal cpu_done (once)
+0000006F  // jal  x0, 0             halt

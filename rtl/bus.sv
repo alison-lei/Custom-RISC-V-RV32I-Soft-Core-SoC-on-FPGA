@@ -22,7 +22,7 @@ module bus (
                 interrupt_sel = 1'b1;
                 target_mem_index = addr - 32'h00005F00;
             end
-            else if (addr >= 32'h00006000 && addr < 32'h0009F200) // = 32'h0002D100 is the start of buffer B
+            else if (addr >= 32'h00006000 && addr < 32'h00051000) // = 32'h0002D100 is the start of buffer B
                 target_mem_index = addr - 32'h00006000;
         end
         

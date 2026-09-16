@@ -7,3 +7,6 @@ sim/work_display/
 db
 output_files
 incremental_db
+
+blue_top_processor.sof
+green_top_processor.sof

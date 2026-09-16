@@ -54,7 +54,6 @@ set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/fetch.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/execute.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/core/decode.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/top_processor.sv
-set_global_assignment -name SYSTEMVERILOG_FILE rtl/sram_controller.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/data_ram.sv
 set_global_assignment -name SYSTEMVERILOG_FILE rtl/bus.sv
 set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
