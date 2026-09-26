@@ -6,8 +6,7 @@ module data_ram (
     input logic ld_enable, st_enable,
     input logic [2:0] size,
     input logic [31:0] st_data, mem_addr,
-    output logic [31:0] dataram_read_data,
-    output logic [31:0] cpu_done
+    output logic [31:0] dataram_read_data
 );
     typedef enum logic [2:0] {
                             BYTE = 3'b000,
@@ -20,51 +19,127 @@ module data_ram (
     st_ld_size data_size;
     assign data_size = st_ld_size'(size);
 
-    // this memory is word granularity
-    logic [31:0] memory [0:959]; // 959 memory blocks each 32 bits
+    // memory is word granularity
+    // 1024 memory block of 32 bits allocated but only 960 used
+    data_ram_ip data_ram_ip (.address(word_addr), .byteena(byte_enable), .clock(clk), .data(aligned_wdata), .wren(byte_b), .q(mem_word_reg));
 
-    logic [29:0] word_addr;
+    logic [31:0] word_addr;
     logic [1:0] byte_index;
     logic [4:0] bit_index_ms;
 
+    // this will be truncated to 10 bits because only 1024 word addresses
     assign word_addr = mem_addr >> 2;
     assign byte_index = mem_addr[1:0];
 
     always_comb begin
-        dataram_read_data = 32'b0;
         bit_index_ms = 5'd7;
-
         if (data_size == H_WORD || data_size == H_WORD_U)
             bit_index_ms = byte_index * 8 + 15;
         else
             bit_index_ms = byte_index * 8 + 7;
+    end
 
-        if (ld_enable && dataram_sel) begin // can do reading in combination block
+    // block RAM physically requries loads to be done sequentially, not combinationally,
+    // need clk edge between giving address and getting data stored there back
+    // cannot do the instant read/combinational of block RAM, that's why "get/freeze" the data
+    // for this clk cycle and can always_comb and slice this data however
+    logic [31:0] mem_word_reg;
+    logic ld_valid_reg;
+    logic [4:0] bit_index_ms_reg;
+    st_ld_size data_size_reg;
+
+    logic [31:0] aligned_wdata;
+    logic [3:0] byte_enable;
+    wire byte_b = |byte_enable;
+
+    always_comb begin
+        aligned_wdata = 32'b0;
+        byte_enable = 4'b0;
+
+        if (st_enable && dataram_sel) begin
             case (data_size)
+                WORD : aligned_wdata = st_data;
+                BYTE, BYTE_U : begin
+                    case (byte_index)
+                        2'b0 : begin aligned_wdata = {24'b0, st_data[7:0]}; byte_enable = 4'b0001; end
+                        2'b1 : begin aligned_wdata = {16'b0, st_data[7:0], 8'b0}; byte_enable = 4'b0010; end
+                        2'b10 : begin aligned_wdata = {8'b0, st_data[7:0], 16'b0}; byte_enable = 4'b0100; end
+                        2'b11 : begin aligned_wdata = {st_data[7:0], 24'b0}; byte_enable = 4'b1000; end
+                        default : ;
+                    endcase
+                end
+                H_WORD, H_WORD_U : begin
+                    case (byte_index)
+                        2'b0 : begin aligned_wdata = {16'b0, st_data[15:0]}; byte_enable = 4'b0011; end
+                        2'b1 : begin aligned_wdata = {st_data[15:0], 16'b0}; byte_enable = 4'b1100; end
+                        default : ;
+                    endcase
+                end
+                default : ;
+            endcase
+        end    
+    end
+
+    always_ff @(posedge clk) begin
+        bit_index_ms_reg <= bit_index_ms;
+        ld_valid_reg <= ld_enable && dataram_sel;
+        data_size_reg <= data_size;
+        // mem_word_reg is so that you can read from it combinationally afterwards, as it is updated sequentially
+
+        // Byte/halfword writes now use STATIC bit ranges, selected via a case
+        // on byte_index, instead of a dynamically-shifted part-select
+        // (memory[word_addr][bit_index_ms -: 8] <= ...). Real block RAM can
+        // only do byte-enable writes at fixed, compile-time-known lane
+        // boundaries - a write whose bit position is computed from a runtime
+        // signal isn't something the hardware can do at all
+
+        // Quartus doens't like it when you have different write-widths (8, 16, 32) for mutually exclusive branches of a case
+        // The following is essentially what is implemented in M9K when give it byteena
+        // if (byte_enable[0]) memory[word_addr][7:0] <= aligned_wdata[7:0];
+        // if (byte_enable[1]) memory[word_addr][15:8] <= aligned_wdata[15:8];
+        // if (byte_enable[2]) memory[word_addr][23:16] <= aligned_wdata[23:16];
+        // if (byte_enable[3]) memory[word_addr][31:24] <= aligned_wdata[31:24];
+
+        // for this method, each differently sized case needs its own write path, so uses more LE
+        // if (st_enable && dataram_sel) begin
+        //     case (data_size)
+        //         WORD : memory[word_addr] <= st_data;
+        //         BYTE, BYTE_U : begin
+        //             case (byte_index)
+        //                 2'b0 : memory[word_addr][7:0] <= st_data[7:0];
+        //                 2'b1 : memory[word_addr][15:8] <= st_data[7:0];
+        //                 2'b10 : memory[word_addr][23:16] <= st_data[7:0];
+        //                 2'b11 : memory[word_addr][31:24] <= st_data[7:0];
+        //                 default : ;
+        //             endcase
+        //         end
+        //         H_WORD, H_WORD_U : begin
+        //             case (byte_index)
+        //                 1'b0 : memory[word_addr][15:0] <= st_data[15:0];
+        //                 1'b1 : memory[word_addr][31:16] <= st_data[15:0];
+        //                 default : ;
+        //             endcase
+        //         end
+        //         default : ;
+        //     endcase
+        // end
+    end
+
+    // can still read with dynamic bit position, just not write
+    always_comb begin
+        dataram_read_data = 32'b0;
+        if (ld_valid_reg) begin // condition upon ld_valid_reg, data_size_reg, bit_index_ms_reg because want conditons
+                                // to be the same as when copied value of memory at that word address in always_ff
+            case (data_size_reg)
                 // -: is WIDTH, must be constant, # of bits inclusive
-                BYTE : dataram_read_data = {{24{memory[word_addr][bit_index_ms]}}, {memory[word_addr][bit_index_ms -: 8]}};
-                H_WORD : dataram_read_data = {{16{memory[word_addr][bit_index_ms]}}, {memory[word_addr][bit_index_ms -: 16]}};
-                WORD : dataram_read_data = memory[word_addr];
-                BYTE_U : dataram_read_data = {{24'b0}, {memory[word_addr][bit_index_ms -: 8]}};
-                H_WORD_U : dataram_read_data = {{16'b0}, {memory[word_addr][bit_index_ms -: 16]}};
+                BYTE : dataram_read_data = {{24{mem_word_reg[bit_index_ms_reg]}}, {mem_word_reg[bit_index_ms_reg -: 8]}};
+                H_WORD : dataram_read_data = {{16{mem_word_reg[bit_index_ms_reg]}}, {mem_word_reg[bit_index_ms_reg -: 16]}};
+                WORD : dataram_read_data = mem_word_reg;
+                BYTE_U : dataram_read_data = {{24'b0}, {mem_word_reg[bit_index_ms_reg -: 8]}};
+                H_WORD_U : dataram_read_data = {{16'b0}, {mem_word_reg[bit_index_ms_reg -: 16]}};
                 default: ;
             endcase
         end
     end
-
-    // can only write once in one cycle, is state change that needs to be clocked
-    always_ff @(posedge clk) begin
-        if (st_enable && dataram_sel) begin
-            case (data_size)
-                BYTE : memory[word_addr][bit_index_ms -: 8] = st_data[7:0];
-                H_WORD : memory[word_addr][bit_index_ms -: 16] = st_data[15:0];
-                WORD : memory[word_addr] = st_data;
-                BYTE_U : memory[word_addr][bit_index_ms -: 8] = st_data[7:0];
-                H_WORD_U : memory[word_addr][bit_index_ms -: 16] = st_data[15:0];
-                default : ;
-            endcase
-        end
-    end
-
 
 endmodule

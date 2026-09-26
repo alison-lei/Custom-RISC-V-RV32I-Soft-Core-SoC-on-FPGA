@@ -9,10 +9,11 @@ module memory_stage (
 );
     // use mux to determine which peripheral read_data wire controls mem_stage_rd_data
     always_comb begin
+        mem_stage_rd_data = 32'b0;
         if (dataram_sel)
             mem_stage_rd_data = dataram_read_data;
         else if (interrupt_sel)
             mem_stage_rd_data = interrupt_read_data;
     end
-    
+
 endmodule

@@ -10,7 +10,13 @@ module interrupt_handler (
     output logic [31:0] interrupt_read_data
 );
     // stores all the interrupt IDs of all the peripherals
-    logic [31:0] interrupt_mem [15:0];
+    logic [31:0] interrupt_mem [0:15];
+
+    initial begin
+        for (int i = 0; i < 16; i++)
+            interrupt_mem[i] = 32'b0;
+    end
+
     // interrupt_pending prevents repeated jumps to the same location
     // so mtvec_enable is only high for 1 cycle and pc is only mtvec handle for 1 cycle
     always_ff @(posedge clk or posedge reset) begin

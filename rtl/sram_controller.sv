@@ -7,7 +7,7 @@ module sram_controller (
     input logic [15:0] cpu_wdata,
     output logic [15:0] lcd_rdata,
     output logic [19:0] SRAM_ADDR,
-    inout logic [15:0] SRAM_DQ,
+    inout wire [15:0] SRAM_DQ,
     output logic SRAM_UB_N, SRAM_LB_N, SRAM_CE_N, SRAM_OE_N, SRAM_WE_N
 );
     // if writing, we are driving DQ, if reading, chip is driving DQ

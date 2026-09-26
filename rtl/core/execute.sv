@@ -55,6 +55,8 @@ module execute (
         jump_b = 1'b0;
         jump_addr = 32'b0;
 
+        csr_write_data = 32'b0;
+
         if (csr_enable) begin
             ex_reg_data = csr_read_data;
 
