@@ -19,7 +19,7 @@ module top_processor (
     // output logic SRAM_UB_N, SRAM_LB_N, SRAM_CE_N, SRAM_OE_N, SRAM_WE_N,
 
     output logic sclk, lcd_cs, lcd_dc, lcd_mosi,
-    output logic LEDG0, LEDG1, LEDG2, LEDG3, LEDG4, LEDG5
+    output logic LEDG0, LEDG1, LEDG2, LEDG3, LEDG4, LEDG5, LEDG6
 
     // output logic [31:0] mem_addr, current_pc, target_mem_index, 
     // output logic cpu_done, store_enable, init_lcd_read, spi_sram_sel, swap_bit, lcd_ack, cpu_we, lcd_done, init_done
@@ -32,6 +32,8 @@ module top_processor (
     wire async_reset = ~KEY[2] | ~locked;
 
     logic [1:0] reset_sync;
+    logic ledg6_reg;
+    assign LEDG6 = ledg6_reg;
 
     always_ff @(posedge clk or posedge async_reset) begin
         if (async_reset)
@@ -173,7 +175,22 @@ module top_processor (
                     .last_reg_data(last_reg_data));
 
 
-    assign pc_enable = (cpu_state == EXEC && !load_enable && !store_enable) || (cpu_state == MEM_WAIT);
+    // determines whether to hold the instr const or not
+    assign pc_enable = (cpu_state == EXEC && !load_enable) || (cpu_state == MEM_WAIT);
+    // assign pc_enable = (cpu_state == EXEC) || (cpu_state == FETCH && (!load_enable && !store_enable)) || (cpu_state == INITIAL);
+
+    // always_ff @(posedge clk or posedge reset) begin
+    //     if (reset)
+    //         cpu_state <= INITIAL;
+    //     else begin
+    //         case (cpu_state)
+    //             INITIAL : cpu_state <= FETCH
+    //             FETCH : cpu_state <= (load_enable || store_enable) ? EXEC : FETCH;
+    //             EXEC : cpu_state <= FETCH;
+    //             default : cpu_state <= FETCH;
+    //         endcase
+    //     end
+    // end
 
     always_ff @(posedge clk or posedge reset) begin
         if (reset)
@@ -187,6 +204,7 @@ module top_processor (
             endcase
         end
     end
+
 
     always_comb begin
         csr_read_data = 32'b0;
@@ -230,6 +248,7 @@ module top_processor (
             swap_bit <= 1'b0;
             cpu_done <= 1'b0;
             init_lcd_read <= 1'b1;
+            ledg6_reg <= 1'b0;
         end
         else begin
             if (mtvec_enable) begin
@@ -250,6 +269,9 @@ module top_processor (
             // cpu writes to address 0x1200 to signal done writing to a framebuffer
             if (target_mem_index == 32'h1200 && store_enable)
                 cpu_done <= 1'b1;
+            
+            if (target_mem_index == 32'h100 && store_enable)  // 0x5100 - 0x5000 = 0x100
+                ledg6_reg <= (rs2_data == 32'd1);
 
             if ((lcd_done && cpu_done || init_lcd_read && cpu_done) && init_done) begin
                 cpu_done <= 1'b0;

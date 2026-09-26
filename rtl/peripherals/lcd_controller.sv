@@ -315,6 +315,7 @@ module lcd_controller (
                         end
                     end
                 end
+                // read port has 2 cycles of total latency, read address & output are both registered
                 SEND_HIGH_BYTE : begin
                     byte_data <= sram_data[15:8];
                     state <= WAIT;

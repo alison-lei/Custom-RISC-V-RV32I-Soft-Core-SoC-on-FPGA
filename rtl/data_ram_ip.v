@@ -96,7 +96,7 @@ module data_ram_ip (
 		altsyncram_component.numwords_a = 1024,
 		altsyncram_component.operation_mode = "SINGLE_PORT",
 		altsyncram_component.outdata_aclr_a = "NONE",
-		altsyncram_component.outdata_reg_a = "CLOCK0",
+		altsyncram_component.outdata_reg_a = "UNREGISTERED",
 		altsyncram_component.power_up_uninitialized = "FALSE",
 		altsyncram_component.read_during_write_mode_port_a = "OLD_DATA",
 		altsyncram_component.widthad_a = 10,
